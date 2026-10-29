@@ -1,7 +1,7 @@
 'use client'
 import { useCallback, useEffect, useState } from 'react'
 import Header from '@/components/Header'
-import { getJson, send, useAgentOS } from '@/lib/useAgentOS'
+import { getJson, send, useBackOffice } from '@/lib/useBackOffice'
 
 type Profile = { preferred_name: string; about: string; personal_goals: string; professional_goals: string; current_focus: string; work_style: string; updated_at: number | null }
 type Insight = { id: number; text: string; category: string; source: string; created_at: number }
@@ -20,7 +20,7 @@ const EMPTY: Record<Field, string> = { preferred_name: '', about: '', personal_g
 const fmt = (t: number) => new Date(t).toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' })
 
 export default function PerfilPage() {
-  const { conn } = useAgentOS()
+  const { conn } = useBackOffice()
   const [saved, setSaved] = useState<Record<Field, string>>(EMPTY)
   const [form, setForm] = useState<Record<Field, string>>(EMPTY)
   const [insights, setInsights] = useState<Insight[]>([])

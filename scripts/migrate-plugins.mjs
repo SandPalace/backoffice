@@ -1,49 +1,58 @@
 #!/usr/bin/env node
-// Moves a Claude install from the 7 old AgentOS plugins (agentos-core, marketing-team, sales-team, collections-team,
-// executive-team, finance-team, dev-team) to the single plugin `agentos@agentos`. Idempotent: safe to run any number of
+// Brings a Claude install to the single plugin `backoffice@backoffice`, from any older shape: the 7 old plugins
+// (agentos-core, marketing-team, sales-team, collections-team, executive-team, finance-team, dev-team, all `@agentos`) or
+// the one plugin `agentos@agentos` from before the AgentOS → Back Office rename. Idempotent: safe to run any number of
 // times. Zero dependencies. Messages to the person are Spanish, one line per step.
 //
-//   node scripts/migrate-plugins.mjs              run every step (bin/agentos update and the installers call this)
+// This is the entry point every launcher and installer calls on update (launchers from before the rename too, so it
+// keeps its name). Its CLI runs the whole Back Office migration (scripts/migrate-backoffice.mjs: backup first,
+// data/agentos.db → backoffice.db, then the steps below, then the agent copies and what is left to do by hand).
+//
+//   node scripts/migrate-plugins.mjs              run every step (bin/backoffice update and the installers call this)
 //   node scripts/migrate-plugins.mjs --no-claude  only the JSON steps (settings + Claude Desktop), no `claude plugin`
 //   node scripts/migrate-plugins.mjs --plugins-only  only the `claude plugin` step
 //   node scripts/migrate-plugins.mjs --no-settings / --no-desktop  skip step 1 / step 2 (installer flags of the same name)
-//   node scripts/migrate-plugins.mjs --from-npm   hand-off from an OLD launcher (web `postinstall`); see legacyHandoff()
+//   node scripts/migrate-plugins.mjs --from-npm   hand-off from an OLD launcher (web `postinstall`); see migrate-backoffice
 //
 // Steps:
-//   1. ~/.claude/settings.json: permission rules with the old tool prefixes are rewritten to the new ones
-//      (mcp__plugin_agentos-core_agentos → mcp__plugin_agentos_agentos, …), and `env.AGENTOS_HOME`/`AGENTOS_ROOT` that
-//      belong to ANOTHER AgentOS folder (the person moved this one; see foreignPath()) are pointed at this folder's
-//      data/ and workspaces/. Keys that are not there are not added (the installer asks first). Everything else is kept.
-//   2. Claude Desktop config: an `mcpServers.agentos` entry that points to plugins/agentos-core/server/src/mcp.mjs is
-//      rewritten to plugins/agentos/server/src/mcp.mjs; one that points to the mcp.mjs of a folder that no longer has it
-//      (moved) is pointed at this folder, and its env gets the same fix as step 1. Everything else is kept.
-//   2b. The database (data/agentos.db): workspace roots, delivery paths and session folders saved under the workspaces/
-//      of the old location of a moved folder are rewritten to this folder's workspaces/.
-//   3. Claude Code plugins: uninstall each old `<p>@agentos`; the `agentos` marketplace is refreshed if it is this
-//      folder, re-registered (remove + add) if it points to another folder (moved), added if missing; then install (or
-//      update) `agentos@agentos`.
+//   1. ~/.claude/settings.json: permission rules with old tool prefixes are rewritten to the new ones
+//      (mcp__plugin_agentos-core_agentos and mcp__plugin_agentos_agentos → mcp__plugin_backoffice_backoffice, tool names
+//      agentos_<x> → backoffice_<x>, …); env keys AGENTOS_<X> that exist are renamed to BACKOFFICE_<X> (no key is added);
+//      BACKOFFICE_HOME/BACKOFFICE_ROOT that belong to ANOTHER Back Office folder (the person moved this one; see
+//      foreignPath()) are pointed at this folder's data/ and workspaces/. Everything else is kept.
+//   2. Claude Desktop config: an existing `mcpServers.agentos` entry becomes `mcpServers.backoffice` (nothing is added
+//      when there is none); its path plugins/agentos(-core)/server/src/mcp.mjs becomes plugins/backoffice/…; one that
+//      points to the mcp.mjs of a folder that no longer has it (moved) is pointed at this folder; its env gets the same
+//      fix as step 1.
+//   2b. The database: workspace roots, delivery paths and session folders saved under the workspaces/ of the old location
+//      of a moved folder are rewritten to this folder's workspaces/.
+//   3. Claude Code plugins: uninstall each old `<p>@agentos`; remove the old `agentos` marketplace when it is (or was) a
+//      Back Office/AgentOS folder; the `backoffice` marketplace is refreshed if it is this folder, re-registered (remove +
+//      add) if it points to another folder (moved), added if missing; then install (or update) `backoffice@backoffice`.
 //
 // Env: HOME / USERPROFILE, APPDATA, LOCALAPPDATA, CLAUDE_CONFIG_DIR (settings live in $CLAUDE_CONFIG_DIR/settings.json when
-// set), AGENTOS_SKIP_CLAUDE=1 (skip step 3), AGENTOS_CLAUDE_BIN (claude executable, default `claude`; tests use a stub).
+// set), BACKOFFICE_SKIP_CLAUDE=1 (skip step 3), BACKOFFICE_CLAUDE_BIN (claude executable, default `claude`; tests use a
+// stub). Their AGENTOS_* names still work (rename compat).
 import {
   existsSync,
   readFileSync,
   writeFileSync,
   copyFileSync,
   readdirSync,
-  mkdirSync,
-  openSync,
   realpathSync,
 } from "node:fs";
-import { spawnSync, spawn } from "node:child_process";
+import { spawnSync } from "node:child_process";
 import { join, dirname, resolve, basename } from "node:path";
 import { fileURLToPath } from "node:url";
 
 export const REPO = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-export const MARKETPLACE = "agentos";
-export const PLUGIN = "agentos";
+export const MARKETPLACE = "backoffice";
+export const PLUGIN = "backoffice";
+/** Marketplace name before the rename: every old plugin id ends in `@agentos`. */
+export const OLD_MARKETPLACE = "agentos";
 export const OLD_PLUGINS = [
-  "agentos-core",
+  "agentos", // the single plugin before the rename
+  "agentos-core", // the 7 plugins before 2026-10-22
   "marketing-team",
   "sales-team",
   "collections-team",
@@ -51,13 +60,30 @@ export const OLD_PLUGINS = [
   "finance-team",
   "dev-team",
 ];
-export const OLD_RULE = "mcp__plugin_agentos-core_agentos";
-export const NEW_RULE = "mcp__plugin_agentos_agentos";
+export const NEW_RULE = "mcp__plugin_backoffice_backoffice";
+const OLD_IDS = OLD_PLUGINS.map((p) => `${p}@${OLD_MARKETPLACE}`);
 
 const say = (m) => console.log(`    ${m}`);
 const home = (env) => env.HOME || env.USERPROFILE || "";
 
-// ── Moved folder: paths that belong to another location of AgentOS ──
+// ── Rename compat: AGENTOS_<X> → BACKOFFICE_<X> ──
+/** Env value with its pre-rename fallback: envOf(env, "SKIP_CLAUDE") = BACKOFFICE_SKIP_CLAUDE || AGENTOS_SKIP_CLAUDE. */
+export const envOf = (env, k) => env[`BACKOFFICE_${k}`] || env[`AGENTOS_${k}`] || undefined;
+/** Renames the AGENTOS_* keys of an `env` block to BACKOFFICE_* (a BACKOFFICE_* key already there wins). Returns changed. */
+export function renameEnvKeys(env) {
+  if (!env || typeof env !== "object" || Array.isArray(env)) return false;
+  let changed = false;
+  for (const k of Object.keys(env)) {
+    if (!k.startsWith("AGENTOS_")) continue;
+    const n = `BACKOFFICE_${k.slice("AGENTOS_".length)}`;
+    if (env[n] === undefined) env[n] = env[k];
+    delete env[k];
+    changed = true;
+  }
+  return changed;
+}
+
+// ── Moved folder: paths that belong to another location of Back Office ──
 const canon = (p) => {
   let r;
   try {
@@ -69,9 +95,9 @@ const canon = (p) => {
 };
 /** Same folder? (realpath; case-insensitive on Windows.) */
 export const sameDir = (a, b) => canon(a) === canon(b);
-const isAgentosFolder = (x) =>
+const isBackofficeFolder = (x) =>
   existsSync(join(x, ".claude-plugin", "marketplace.json"));
-// What a SessionStart hook leaves behind when Claude still has the old AGENTOS_HOME: data/ (and maybe workspaces/), nothing else.
+// What a SessionStart hook leaves behind when Claude still has the old BACKOFFICE_HOME: data/ (and maybe workspaces/), nothing else.
 const isLeftover = (x) => {
   try {
     return readdirSync(x).every((e) =>
@@ -82,9 +108,9 @@ const isLeftover = (x) => {
   }
 };
 /**
- * `p` is the `sub` folder (data | workspaces) of an AgentOS location that is not `repo`: another AgentOS folder, one
- * that no longer exists (it was moved) or its leftover. A custom path (any other name, or a folder with other content)
- * is not foreign. Same rule as foreign_dir in install.sh / bin/agentos.
+ * `p` is the `sub` folder (data | workspaces) of a Back Office location that is not `repo`: another Back Office folder,
+ * one that no longer exists (it was moved) or its leftover. A custom path (any other name, or a folder with other
+ * content) is not foreign. Same rule as foreign_dir in install.sh / bin/backoffice.
  */
 export function foreignPath(p, sub, repo = REPO) {
   if (typeof p !== "string" || !p) return false;
@@ -92,11 +118,11 @@ export function foreignPath(p, sub, repo = REPO) {
   if (basename(full).toLowerCase() !== sub) return false;
   const x = dirname(full);
   if (sameDir(x, repo)) return false;
-  return isAgentosFolder(x) || isLeftover(x);
+  return isBackofficeFolder(x) || isLeftover(x);
 }
 /** The value env key `k` should have, or null to leave it alone. */
 function repointValue(k, v, repo) {
-  const sub = { AGENTOS_HOME: "data", AGENTOS_ROOT: "workspaces" }[k];
+  const sub = { BACKOFFICE_HOME: "data", BACKOFFICE_ROOT: "workspaces" }[k];
   if (!sub || !foreignPath(v, sub, repo)) return null;
   // Only when this folder really has that data (it was moved here); a fresh clone keeps the old one until the installer asks.
   const mine = join(repo, sub);
@@ -105,7 +131,7 @@ function repointValue(k, v, repo) {
 function repointEnv(env, repo) {
   if (!env || typeof env !== "object" || Array.isArray(env)) return false;
   let changed = false;
-  for (const k of ["AGENTOS_HOME", "AGENTOS_ROOT"]) {
+  for (const k of ["BACKOFFICE_HOME", "BACKOFFICE_ROOT"]) {
     const n = repointValue(k, env[k], repo);
     if (n) {
       env[k] = n;
@@ -115,19 +141,25 @@ function repointEnv(env, repo) {
   return changed;
 }
 
-// Old tool prefix → new one. Applies to a rule like `mcp__plugin_agentos-core_agentos` or `…__agentos_task_create`.
+/**
+ * Old tool prefix → new one. Applies to a rule like `mcp__plugin_agentos-core_agentos`, `mcp__plugin_agentos_agentos`
+ * or `…__agentos_task_create` (→ `mcp__plugin_backoffice_backoffice__backoffice_task_create`).
+ */
 export function renameRule(rule) {
   if (typeof rule !== "string") return rule;
-  return rule
-    .replace(/^mcp__plugin_agentos-core_agentos(?=$|__)/, NEW_RULE)
+  const r = rule
+    .replace(/^mcp__plugin_agentos(?:-core)?_agentos(?=$|__)/, NEW_RULE)
     .replace(
-      /^mcp__plugin_(sales-team|dev-team)_playwright(?=$|__)/,
-      "mcp__plugin_agentos_playwright",
+      /^mcp__plugin_(?:sales-team|dev-team|agentos)_playwright(?=$|__)/,
+      "mcp__plugin_backoffice_playwright",
     )
     .replace(
-      /^mcp__plugin_marketing-team_meta-(ads|browser)(?=$|__)/,
-      "mcp__plugin_agentos_meta-$1",
+      /^mcp__plugin_(?:marketing-team|agentos)_meta-(ads|browser)(?=$|__)/,
+      "mcp__plugin_backoffice_meta-$1",
     );
+  return r.startsWith(`${NEW_RULE}__agentos_`)
+    ? `${NEW_RULE}__backoffice_${r.slice(`${NEW_RULE}__agentos_`.length)}`
+    : r;
 }
 
 const readJson = (f) => {
@@ -139,8 +171,8 @@ const readJson = (f) => {
   return c;
 };
 const writeJson = (f, c) => {
-  if (!existsSync(`${f}.agentos-backup`))
-    copyFileSync(f, `${f}.agentos-backup`);
+  if (!existsSync(`${f}.backoffice-backup`))
+    copyFileSync(f, `${f}.backoffice-backup`);
   writeFileSync(f, JSON.stringify(c, null, 2) + "\n");
 };
 
@@ -156,7 +188,8 @@ export function migrateSettings(file = settingsFile(), repo = REPO) {
   } catch {
     return "invalid";
   }
-  let changed = repointEnv(c.env, repo);
+  let changed = renameEnvKeys(c.env);
+  if (repointEnv(c.env, repo)) changed = true;
   const p =
     c.permissions && typeof c.permissions === "object" ? c.permissions : {};
   for (const k of ["allow", "ask", "deny"]) {
@@ -197,9 +230,10 @@ export function desktopConfigs(env = process.env) {
     .filter((f) => existsSync(f));
 }
 
-const OLD_MCP = /plugins([\\/])agentos-core\1server\1src\1mcp\.mjs$/;
+// plugins/agentos-core/… (the 7 plugins) and plugins/agentos/… (before the rename) → plugins/backoffice/…
+const OLD_MCP = /plugins([\\/])agentos(?:-core)?\1server\1src\1mcp\.mjs$/;
 const ANY_MCP =
-  /^(.*)[\\/]plugins[\\/]agentos(?:-core)?[\\/]server[\\/]src[\\/]mcp\.mjs$/;
+  /^(.*)[\\/]plugins[\\/](?:agentos(?:-core)?|backoffice)[\\/]server[\\/]src[\\/]mcp\.mjs$/;
 
 /** Step 2 for one file. Returns 'changed' | 'unchanged' | 'invalid'. */
 export function migrateDesktop(file, repo = REPO) {
@@ -209,31 +243,48 @@ export function migrateDesktop(file, repo = REPO) {
   } catch {
     return "invalid";
   }
-  const e = c.mcpServers?.agentos;
-  if (!e || !Array.isArray(e.args)) return "unchanged";
+  const servers = c.mcpServers;
+  if (!servers || typeof servers !== "object") return "unchanged";
   let changed = false;
-  const mine = join(repo, "plugins", "agentos", "server", "src", "mcp.mjs");
-  e.args = e.args.map((a) => {
-    if (typeof a !== "string") return a;
-    let n = a;
-    if (OLD_MCP.test(n))
-      n = n.replace(OLD_MCP, (_m, s) =>
-        ["plugins", "agentos", "server", "src", "mcp.mjs"].join(s),
+  // The old entry is renamed in place (same position); a `backoffice` entry that is already there wins.
+  if (servers[OLD_MARKETPLACE] !== undefined) {
+    if (servers[MARKETPLACE] === undefined)
+      c.mcpServers = Object.fromEntries(
+        Object.entries(servers).map(([k, v]) => [
+          k === OLD_MARKETPLACE ? MARKETPLACE : k,
+          v,
+        ]),
       );
-    // Moved folder: the entry points to the mcp.mjs of a location that no longer has it.
-    const m = n.match(ANY_MCP);
-    if (m && !existsSync(n) && !sameDir(m[1], repo) && existsSync(mine))
-      n = mine;
-    if (n !== a) changed = true;
-    return n;
-  });
-  if (repointEnv(e.env, repo)) changed = true;
+    else delete servers[OLD_MARKETPLACE];
+    changed = true;
+  }
+  const e = c.mcpServers[MARKETPLACE];
+  if (e && typeof e === "object") {
+    const mine = join(repo, "plugins", "backoffice", "server", "src", "mcp.mjs");
+    if (Array.isArray(e.args))
+      e.args = e.args.map((a) => {
+        if (typeof a !== "string") return a;
+        let n = a;
+        if (OLD_MCP.test(n))
+          n = n.replace(OLD_MCP, (_m, s) =>
+            ["plugins", "backoffice", "server", "src", "mcp.mjs"].join(s),
+          );
+        // Moved folder: the entry points to the mcp.mjs of a location that no longer has it.
+        const m = n.match(ANY_MCP);
+        if (m && !existsSync(n) && !sameDir(m[1], repo) && existsSync(mine))
+          n = mine;
+        if (n !== a) changed = true;
+        return n;
+      });
+    if (renameEnvKeys(e.env)) changed = true;
+    if (repointEnv(e.env, repo)) changed = true;
+  }
   if (!changed) return "unchanged";
   writeJson(file, c);
   return "changed";
 }
 
-const claudeBin = (env = process.env) => env.AGENTOS_CLAUDE_BIN || "claude";
+const claudeBin = (env = process.env) => envOf(env, "CLAUDE_BIN") || "claude";
 function claude(args, env = process.env) {
   const opts = { encoding: "utf8", env, stdio: ["ignore", "pipe", "pipe"] };
   let r = spawnSync(claudeBin(env), args, opts);
@@ -276,10 +327,10 @@ export function installedPlugins(env = process.env) {
 }
 
 /**
- * The registered `agentos` marketplace: { path, source } | null (not registered) | undefined (could not ask).
- * Uses `claude plugin marketplace list --json`; older CLIs without --json print «Source: Folder (<path>)».
+ * The registered marketplace `name` (default `backoffice`): { path, source } | null (not registered) | undefined (could
+ * not ask). Uses `claude plugin marketplace list --json`; older CLIs without --json print «Source: Folder (<path>)».
  */
-export function registeredMarketplace(env = process.env) {
+export function registeredMarketplace(env = process.env, name = MARKETPLACE) {
   const j = claude(["plugin", "marketplace", "list", "--json"], env);
   if (j.ok) {
     try {
@@ -290,7 +341,7 @@ export function registeredMarketplace(env = process.env) {
           ? v.marketplaces
           : null;
       if (arr) {
-        const e = arr.find((x) => x?.name === MARKETPLACE);
+        const e = arr.find((x) => x?.name === name);
         if (!e) return null;
         const src = typeof e.source === "object" ? e.source : null;
         const path = e.path ?? src?.path ?? (src ? null : e.installLocation);
@@ -307,7 +358,7 @@ export function registeredMarketplace(env = process.env) {
   if (!t.ok) return undefined;
   const lines = t.out.split(/\r?\n/);
   const i = lines.findIndex((l) =>
-    new RegExp(`^\\s*(?:❯|>|\\*|-)?\\s*${MARKETPLACE}\\s*$`).test(l),
+    new RegExp(`^\\s*(?:❯|>|\\*|-)?\\s*${name}\\s*$`).test(l),
   );
   if (i < 0) return /marketplace/i.test(t.out) ? null : undefined;
   const src = (lines[i + 1] || "").match(/Source:\s*(.*)$/);
@@ -323,9 +374,13 @@ export function registeredMarketplace(env = process.env) {
  * workspaces/. Returns the number of rows changed (0 when there is nothing to do, or no database).
  */
 export async function repointDb(repo = REPO) {
-  const file = join(repo, "data", "agentos.db");
+  const data = join(repo, "data");
+  // backoffice.db, or agentos.db while its rename could not happen yet (same rule as the server's dbFileIn()).
+  const file = [join(data, "backoffice.db"), join(data, "agentos.db")].find(
+    (f) => existsSync(f),
+  );
   const mineRoot = join(repo, "workspaces");
-  if (!existsSync(file) || !existsSync(mineRoot)) return 0;
+  if (!file || !existsSync(mineRoot)) return 0;
   let DatabaseSync;
   try {
     ({ DatabaseSync } = await import("node:sqlite"));
@@ -378,10 +433,22 @@ export async function repointDb(repo = REPO) {
   }
 }
 
-/** Step 3. Returns true when `agentos@agentos` ends up installed. */
-export function migrateClaudePlugins(env = process.env, repo = REPO) {
-  if (env.AGENTOS_SKIP_CLAUDE === "1") {
-    say("Plugins de Claude: omitido (AGENTOS_SKIP_CLAUDE=1).");
+/** Is a registered pre-rename `agentos` marketplace ours? (this folder, a gone folder, an AgentOS/Back Office folder, or the public repo) */
+function ownOldMarketplace(reg, repo) {
+  if (!reg) return false;
+  if (!reg.path) return /agentos/i.test(reg.source);
+  return (
+    sameDir(reg.path, repo) ||
+    !existsSync(reg.path) ||
+    existsSync(join(reg.path, "plugins", "agentos")) ||
+    existsSync(join(reg.path, "plugins", "backoffice"))
+  );
+}
+
+/** Step 3. Returns true when `backoffice@backoffice` ends up installed. `report.removedOld` = an old plugin/marketplace was removed. */
+export function migrateClaudePlugins(env = process.env, repo = REPO, report = {}) {
+  if (envOf(env, "SKIP_CLAUDE") === "1") {
+    say("Plugins de Claude: omitido (BACKOFFICE_SKIP_CLAUDE=1).");
     return true;
   }
   const before = installedPlugins(env);
@@ -395,9 +462,9 @@ export function migrateClaudePlugins(env = process.env, repo = REPO) {
     return false;
   }
   const target = `${PLUGIN}@${MARKETPLACE}`;
-  for (const p of before.filter((x) =>
-    OLD_PLUGINS.some((o) => x.id === `${o}@${MARKETPLACE}`),
-  )) {
+  const first = (x) => (x.err || x.out).trim().split("\n")[0];
+  let removedOld = false;
+  for (const p of before.filter((x) => OLD_IDS.includes(x.id))) {
     const args = [
       "plugin",
       "uninstall",
@@ -405,13 +472,24 @@ export function migrateClaudePlugins(env = process.env, repo = REPO) {
       ...(p.scope ? ["--scope", String(p.scope)] : []),
     ];
     const r = claude(args, env);
+    if (r.ok) removedOld = true;
     say(
       r.ok
         ? `Quité el plugin viejo ${p.id} (ahora todo viene en ${target}).`
-        : `!! No pude quitar ${p.id}: ${(r.err || r.out).trim().split("\n")[0]}. A mano: claude plugin uninstall ${p.id}`,
+        : `!! No pude quitar ${p.id}: ${first(r)}. A mano: claude plugin uninstall ${p.id}`,
     );
   }
-  const first = (x) => (x.err || x.out).trim().split("\n")[0];
+  // The pre-rename marketplace `agentos` (normally this same folder under its old name): Claude can no longer refresh it.
+  const old = registeredMarketplace(env, OLD_MARKETPLACE);
+  if (ownOldMarketplace(old, repo)) {
+    const rm = claude(["plugin", "marketplace", "remove", OLD_MARKETPLACE], env);
+    if (rm.ok) removedOld = true;
+    say(
+      rm.ok
+        ? `Quité el marketplace viejo ${OLD_MARKETPLACE} (ahora se llama ${MARKETPLACE}).`
+        : `!! No pude quitar el marketplace viejo ${OLD_MARKETPLACE}: ${first(rm)}. A mano: claude plugin marketplace remove ${OLD_MARKETPLACE}`,
+    );
+  }
   const add = () => {
     const a = claude(["plugin", "marketplace", "add", repo], env);
     say(
@@ -439,8 +517,9 @@ export function migrateClaudePlugins(env = process.env, repo = REPO) {
     if (m.ok) say(`Marketplace ${MARKETPLACE} actualizado.`);
     else add();
   }
+  report.removedOld = removedOld;
   // Removing a marketplace uninstalls its plugins: ask again what is installed.
-  const now = moved ? (installedPlugins(env) ?? before) : before;
+  const now = moved || removedOld ? (installedPlugins(env) ?? before) : before;
   const has = now.some((x) => x.id === target);
   const r = claude(["plugin", has ? "update" : "install", target], env);
   const after = installedPlugins(env) ?? [];
@@ -449,11 +528,9 @@ export function migrateClaudePlugins(env = process.env, repo = REPO) {
     say(has ? `Plugin ${target} actualizado.` : `Plugin ${target} instalado.`);
   else
     say(
-      `!! No quedó instalado ${target}: ${(r.err || r.out).trim().split("\n")[0]}. A mano: claude plugin install ${target}`,
+      `!! No quedó instalado ${target}: ${first(r)}. A mano: claude plugin install ${target}`,
     );
-  const left = after
-    .filter((x) => OLD_PLUGINS.some((o) => x.id === `${o}@${MARKETPLACE}`))
-    .map((x) => x.id);
+  const left = after.filter((x) => OLD_IDS.includes(x.id)).map((x) => x.id);
   if (left.length)
     say(
       `!! Siguen instalados plugins viejos: ${left.join(", ")}. A mano: claude plugin uninstall <plugin>`,
@@ -471,7 +548,7 @@ export async function migrateJson(
     const rs = migrateSettings(s, repo);
     say(
       {
-        changed: `Configuración de Claude Code actualizada (permiso ${NEW_RULE}, rutas AGENTOS_HOME/AGENTOS_ROOT) en ${s} (respaldo: .agentos-backup).`,
+        changed: `Configuración de Claude Code actualizada (permiso ${NEW_RULE}, variables BACKOFFICE_*) en ${s} (respaldo: .backoffice-backup).`,
         unchanged: `Configuración de Claude Code: nada que cambiar (${s}).`,
         missing: `Configuración de Claude Code: no hay ${s}; nada que cambiar.`,
         invalid: `!! ${s} no es JSON válido; no lo toqué.`,
@@ -486,7 +563,7 @@ export async function migrateJson(
       const rd = migrateDesktop(f, repo);
       say(
         {
-          changed: `Claude Desktop: el MCP agentos ahora apunta a ${join(repo, "plugins", "agentos", "server", "src", "mcp.mjs")} (${f}). Reinicia Claude Desktop.`,
+          changed: `Claude Desktop: el MCP ahora se llama ${MARKETPLACE} y apunta a ${join(repo, "plugins", "backoffice", "server", "src", "mcp.mjs")} (${f}). Reinicia Claude Desktop.`,
           unchanged: `Claude Desktop: nada que cambiar (${f}).`,
           invalid: `!! ${f} no es JSON válido; no lo toqué.`,
         }[rd],
@@ -504,82 +581,17 @@ export async function migrateJson(
   }
 }
 
-// The OLD bin/agentos (and agentos.ps1) cannot run new code: the shell already loaded the old script before `git pull`
-// replaced it. The one new code it runs is `npm ci` in web/, so web/package.json's `postinstall` calls this with
-// --from-npm. It acts only in a student copy (`.agentos-export` marker) and only when no new launcher/installer is
-// running (they set AGENTOS_LAUNCHER=2 and migrate themselves). It never fails the npm install.
-async function legacyHandoff(env = process.env) {
-  if (!existsSync(join(REPO, ".agentos-export")) || env.AGENTOS_LAUNCHER)
-    return;
-  console.log(
-    "\n==> AgentOS ahora es un solo plugin («agentos»): migrando tu instalación de Claude",
-  );
-  await migrateJson(env);
-  migrateClaudePlugins(env);
-  // The old launcher restarts the server with the OLD path (plugins/agentos-core/...), which no longer exists. If the
-  // server is already up when it gets there, it skips that and only starts the web.
-  const port = Number(env.AGENTOS_PORT || 4780);
-  const up = async () => {
-    try {
-      return (
-        await fetch(`http://127.0.0.1:${port}/health`, {
-          signal: AbortSignal.timeout(800),
-        })
-      ).ok;
-    } catch {
-      return false;
-    }
-  };
-  if (!(await up())) {
-    const data = env.AGENTOS_HOME || join(REPO, "data");
-    try {
-      mkdirSync(join(data, "logs"), { recursive: true });
-      mkdirSync(join(data, "run"), { recursive: true });
-      const log = openSync(join(data, "logs", "server.log"), "a");
-      const child = spawn(
-        process.execPath,
-        [join(REPO, "plugins", "agentos", "server", "src", "server.mjs")],
-        { detached: true, windowsHide: true, stdio: ["ignore", log, log], env },
-      );
-      writeFileSync(join(data, "run", "server.pid"), `${child.pid}\n`);
-      child.unref();
-      for (let i = 0; i < 40 && !(await up()); i++)
-        await new Promise((r) => setTimeout(r, 250));
-      say(
-        (await up())
-          ? `Servidor iniciado con la ruta nueva (puerto ${port}).`
-          : `!! El servidor no arrancó; revisa ${join(data, "logs", "server.log")}.`,
-      );
-    } catch (e) {
-      say(`!! No pude iniciar el servidor: ${e.message}`);
-    }
-  }
-  say(
-    "Si ahora ves avisos de «plugin not found» para agentos-core, marketing-team, etc., ignóralos: esos 7 plugins ya son uno.",
-  );
-  say(
-    "La próxima vez usa ./bin/agentos update (Windows .\\bin\\agentos.cmd update): ya trae esta migración.",
-  );
-}
-
 const isMain =
   process.argv[1] &&
   resolve(process.argv[1]) === fileURLToPath(import.meta.url);
 if (isMain) {
-  const args = process.argv.slice(2);
-  if (args.includes("--from-npm")) {
-    try {
-      await legacyHandoff();
-    } catch (e) {
-      console.log(`    !! Migración de plugins: ${e.message}`);
-    }
-    process.exit(0);
-  }
-  if (!args.includes("--plugins-only"))
-    await migrateJson(process.env, {
-      settings: !args.includes("--no-settings"),
-      desktop: !args.includes("--no-desktop"),
+  // The whole migration (backup, database file, these steps, agent copies, manual steps) is in migrate-backoffice.mjs,
+  // which imports this module: no top-level await here, or that import would wait on this module forever.
+  import("./migrate-backoffice.mjs")
+    .then((m) => m.main(process.argv.slice(2)))
+    .then((code) => process.exit(code))
+    .catch((e) => {
+      console.log(`    !! Migración: ${e.message}`);
+      process.exit(1);
     });
-  const ok = args.includes("--no-claude") ? true : migrateClaudePlugins();
-  process.exit(ok ? 0 : 1);
 }

@@ -10,12 +10,16 @@ tsconfig.tsbuildinfo
 *.log
 test-results/
 .DS_Store
-# Datos locales de AgentOS: nunca se suben.
+# Datos locales de Back Office: nunca se suben.
 /data/
 /workspaces/
+# Respaldos de data/ y workspaces/ (./bin/backoffice backup, skill update-backoffice): son tuyos, nunca se suben.
+/backups/
 # Built by install/update (scripts/build-mcpb.mjs): the Claude Desktop extension.
 /dist/
 # Lo que Claude crea al abrir esta carpeta como proyecto (permisos «Permitir siempre», notas locales, agentes copiados
 # si un proyecto apunta a esta carpeta): es de la persona, nunca se sube ni se pisa al actualizar.
 /.claude/
 /CLAUDE.local.md
+# Skill oficial de Mirage que cada quien instala aparte (licencia propietaria): nunca se sube.
+/plugins/backoffice/skills/tesseract-motion/

@@ -1,0 +1,230 @@
+<!doctype html>
+<!--
+  Back Office canvas template: dashboard (KPI cards + bar/line charts + table).
+  Use: copy to $TMPDIR/backoffice-work/<task>/. Edit the header tokens and ONLY the JSON block with id="data";
+  the page draws everything from it (inline SVG, no libraries). Rules for the JSON:
+  - Values are plain numbers (12500, not "$12,500"). A value you do not have = null (shows [NO DATA]) and say so in "note".
+  - format: "money" | "number" | "percent" (0.25 = 25 %) | "text". currency: ISO code, e.g. "MXN".
+  - kpis: 3 to 6 items. tone of the delta chip: "ok" | "warn" | "bad" | "info".
+  - charts: type "bar" (compare categories, up to 3 series) or "line" (change over time, up to 3 series), up to 12 labels.
+    Never mix two units in one chart: make two charts.
+  - table.columns[].total = true adds that column to the totals row.
+  Self-contained on purpose: no external URLs, fonts, scripts or fetch. Keep it that way.
+-->
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{{TITLE}}</title>
+<style>
+/* ===== Back Office canvas · shared base: identical in every template, do not edit; page styles go below ===== */
+:root{color-scheme:light;
+  --bg:#f6f6f4;--surface:#fff;--surface-2:#f0f0ed;--ink:#1b1c1e;--muted:#62666d;--line:#e2e2de;
+  --accent:#2a78d6;--accent-bg:#e7f0fb;--ok:#1d7a45;--ok-bg:#e3f3e9;--warn:#9a6200;--warn-bg:#fbf0d9;
+  --bad:#b42d2d;--bad-bg:#fbe5e5;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--radius:12px;--shadow:0 1px 2px rgba(0,0,0,.05)}
+@media (prefers-color-scheme:dark){:root{color-scheme:dark;
+  --bg:#131416;--surface:#1c1e21;--surface-2:#25282c;--ink:#ecebe8;--muted:#a3a7ae;--line:#30343a;
+  --accent:#5b9cec;--accent-bg:#1a2a40;--ok:#55c486;--ok-bg:#163020;--warn:#e3ad4a;--warn-bg:#33270e;
+  --bad:#ef7171;--bad-bg:#3a1b1b;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--shadow:none}}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif}
+.page{max-width:980px;margin:0 auto;padding:32px 20px 48px}
+.top{border-bottom:1px solid var(--line);padding-bottom:16px;margin-bottom:22px}
+.eyebrow{font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
+h1{font-size:28px;line-height:1.2;margin:6px 0;letter-spacing:-.01em}
+h2{font-size:17px;line-height:1.3;margin:28px 0 12px}
+h3{font-size:15px;margin:0 0 6px}
+p{margin:0 0 10px}
+.meta{color:var(--muted);font-size:13px}
+.meta span+span::before{content:"·";margin:0 8px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:16px 18px;box-shadow:var(--shadow)}
+.grid{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}
+.chip{display:inline-block;font-size:12px;font-weight:600;line-height:1.6;padding:1px 10px;border-radius:999px;background:var(--surface-2);color:var(--muted);white-space:nowrap}
+.chip.ok{background:var(--ok-bg);color:var(--ok)}.chip.warn{background:var(--warn-bg);color:var(--warn)}
+.chip.bad{background:var(--bad-bg);color:var(--bad)}.chip.info{background:var(--accent-bg);color:var(--accent)}
+.ask{margin-top:28px;border:1px solid var(--accent);border-left-width:5px;background:var(--accent-bg);border-radius:var(--radius);padding:16px 18px}
+.ask h2{margin:0 0 8px;color:var(--accent)}
+.ask ol,.ask ul{margin:0;padding-left:20px}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+.num{text-align:right;font-variant-numeric:tabular-nums}
+.scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.muted{color:var(--muted)}
+.foot{margin-top:36px;padding-top:12px;border-top:1px solid var(--line);color:var(--muted);font-size:12px}
+@media (max-width:600px){.page{padding:22px 16px 36px}h1{font-size:23px}.card{padding:14px}}
+@media print{:root{--bg:#fff;--surface:#fff;--surface-2:#f2f2f2;--ink:#000;--muted:#444;--line:#ccc;--shadow:none}
+  body{font-size:12px}.page{max-width:none;padding:0}.card,.ask,tr{break-inside:avoid}.no-print{display:none!important}}
+/* ===== end shared base ===== */
+.kpis{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(170px,1fr))}
+.kpi .label{font-size:13px;color:var(--muted)}
+.kpi .value{font-size:26px;font-weight:700;line-height:1.2;margin:4px 0 6px;font-variant-numeric:tabular-nums}
+.kpi .note{font-size:12px;color:var(--muted);margin-top:6px}
+.charts{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(320px,1fr))}
+.chart h3{margin-bottom:2px}
+.chart svg{display:block;width:100%;height:auto;margin-top:8px}
+.chart .axis{fill:var(--muted);font-size:14px}
+.chart .grid-line{stroke:var(--line);stroke-width:1}
+.legend{display:flex;flex-wrap:wrap;gap:14px;font-size:12px;color:var(--muted);margin-top:6px}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+.error{background:var(--bad-bg);color:var(--bad);border-radius:var(--radius);padding:12px 14px;font-weight:600}
+tfoot td{font-weight:700;border-top:2px solid var(--line)}
+</style>
+</head>
+<body>
+<main class="page">
+  <header class="top">
+    <div class="eyebrow">Tablero</div>
+    <h1>{{TITLE}}</h1>
+    <div class="meta"><span>Periodo: {{PERIOD}}</span><span>Datos al: {{DATA_CUTOFF_DATE}}</span><span>Preparó: {{AGENT_NAME}}</span></div>
+  </header>
+  <div id="err"></div>
+  <section><div class="kpis" id="kpis"></div></section>
+  <section><h2>Tendencias</h2><div class="charts" id="charts"></div></section>
+  <section><h2 id="table-title">Detalle</h2><div class="card scroll"><table id="table"></table></div></section>
+  <section class="ask">
+    <h2>Qué necesito que valides</h2>
+    <ol><li>{{QUESTION_FOR_OWNER}}</li></ol>
+  </section>
+  <footer class="foot">Fuente de los datos: {{DATA_SOURCES}} · Preparado por {{AGENT_NAME}} en Back Office · {{DATE}}</footer>
+</main>
+
+<!-- DATA: the only part to fill besides the header tokens. Must stay valid JSON. -->
+<script type="application/json" id="data">
+{
+  "currency": "MXN",
+  "kpis": [
+    {"label": "{{KPI_LABEL}}", "value": null, "format": "money", "delta": "{{DELTA_TEXT}}", "tone": "info", "note": "{{KPI_NOTE}}"},
+    {"label": "{{KPI_LABEL}}", "value": null, "format": "number", "delta": "", "tone": "info", "note": ""},
+    {"label": "{{KPI_LABEL}}", "value": null, "format": "percent", "delta": "", "tone": "info", "note": ""}
+  ],
+  "charts": [
+    {"type": "bar", "title": "{{CHART_TITLE}}", "format": "money", "labels": ["{{LABEL}}", "{{LABEL}}"],
+     "series": [{"name": "{{SERIES_NAME}}", "values": [null, null]}]},
+    {"type": "line", "title": "{{CHART_TITLE}}", "format": "number", "labels": ["{{LABEL}}", "{{LABEL}}"],
+     "series": [{"name": "{{SERIES_NAME}}", "values": [null, null]}]}
+  ],
+  "table": {
+    "title": "{{TABLE_TITLE}}",
+    "columns": [{"key": "name", "label": "{{COLUMN}}", "format": "text"}, {"key": "amount", "label": "{{COLUMN}}", "format": "money", "total": true}],
+    "rows": [{"name": "{{ROW_NAME}}", "amount": null}]
+  }
+}
+</script>
+<script>
+(function () {
+  var probe = document.createElement('div'); probe.innerHTML = '<svg></svg>';
+  var NS = probe.firstChild.namespaceURI, COLORS = ['var(--s1)', 'var(--s2)', 'var(--s3)'];
+  var D;
+  try { D = JSON.parse(document.getElementById('data').textContent); }
+  catch (e) { document.getElementById('err').innerHTML = '<p class="error">El bloque de datos no es JSON válido: ' + e.message + '</p>'; return; }
+  var cur = D.currency || 'MXN';
+  function isNum(v) { return typeof v === 'number' && isFinite(v); }
+  function fmt(v, f, short) {
+    if (f === 'text') return v == null ? '' : String(v);
+    if (!isNum(v)) return '[NO DATA]';
+    if (short && f !== 'percent') {
+      var a = Math.abs(v), t = a >= 1e6 ? +(v / 1e6).toFixed(1) + ' M' : a >= 1e3 ? +(v / 1e3).toFixed(1) + ' k' : String(+v.toFixed(1));
+      return (f === 'money' ? '$' : '') + t;
+    }
+    var o = { maximumFractionDigits: 2 };
+    if (f === 'money') { o.style = 'currency'; o.currency = cur; o.maximumFractionDigits = 0; }
+    if (f === 'percent') { o.style = 'percent'; o.maximumFractionDigits = 1; }
+    try { return new Intl.NumberFormat('es-MX', o).format(v); } catch (e) { return String(v); }
+  }
+  function el(tag, attrs, text) {
+    var n = /^(svg|g|rect|line|text|polyline|circle|title)$/.test(tag) ? document.createElementNS(NS, tag) : document.createElement(tag);
+    for (var k in attrs || {}) n.setAttribute(k, attrs[k]);
+    if (text != null) n.textContent = text;
+    return n;
+  }
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+
+  (D.kpis || []).forEach(function (k) {
+    var c = el('div', { 'class': 'card kpi' });
+    c.innerHTML = '<div class="label">' + esc(k.label) + '</div><div class="value">' + esc(fmt(k.value, k.format)) + '</div>' +
+      (k.delta ? '<span class="chip ' + esc(k.tone || 'info') + '">' + esc(k.delta) + '</span>' : '') +
+      (k.note ? '<div class="note">' + esc(k.note) + '</div>' : '');
+    document.getElementById('kpis').appendChild(c);
+  });
+
+  function niceMax(m) {
+    if (m <= 0) return 1;
+    var p = Math.pow(10, Math.floor(Math.log10(m / 4))), s = [1, 2, 2.5, 5, 10];
+    for (var i = 0; i < s.length; i++) if (s[i] * p * 4 >= m) return s[i] * p * 4;
+    return 10 * p * 4;
+  }
+  function chart(c) {
+    var W = 600, H = 270, L = 62, R = 12, T = 12, B = 30, iw = W - L - R, ih = H - T - B;
+    var n = c.labels.length, series = (c.series || []).slice(0, 3), all = [];
+    series.forEach(function (s) { s.values.forEach(function (v) { if (isNum(v)) all.push(v); }); });
+    var max = niceMax(Math.max.apply(null, all.concat([0])));
+    var svg = el('svg', { viewBox: '0 0 ' + W + ' ' + H, role: 'img', 'aria-label': c.title });
+    for (var t = 0; t <= 4; t++) {
+      var y = T + ih - ih * t / 4;
+      svg.appendChild(el('line', { 'class': 'grid-line', x1: L, x2: W - R, y1: y, y2: y }));
+      svg.appendChild(el('text', { 'class': 'axis', x: L - 8, y: y + 4, 'text-anchor': 'end' }, fmt(max * t / 4, c.format, true)));
+    }
+    var step = iw / Math.max(n, 1), every = Math.ceil(n / 8);
+    c.labels.forEach(function (lab, i) {
+      if (i % every === 0) svg.appendChild(el('text', { 'class': 'axis', x: L + step * i + step / 2, y: H - 8, 'text-anchor': 'middle' }, lab));
+    });
+    function yOf(v) { return T + ih - ih * v / max; }
+    series.forEach(function (s, si) {
+      var color = COLORS[si];
+      if (c.type === 'bar') {
+        var gw = step * 0.7, bw = gw / series.length;
+        s.values.forEach(function (v, i) {
+          if (!isNum(v)) return;
+          var x = L + step * i + (step - gw) / 2 + bw * si + 1, h = Math.max(ih * v / max, 1);
+          var r = el('rect', { x: x, y: yOf(v), width: Math.max(bw - 2, 2), height: h, rx: 3, fill: color });
+          r.appendChild(el('title', {}, s.name + ' · ' + c.labels[i] + ': ' + fmt(v, c.format)));
+          svg.appendChild(r);
+        });
+      } else {
+        var pts = [];
+        s.values.forEach(function (v, i) { if (isNum(v)) pts.push([L + step * i + step / 2, yOf(v), v, i]); });
+        svg.appendChild(el('polyline', { points: pts.map(function (p) { return p[0] + ',' + p[1]; }).join(' '), fill: 'none', stroke: color, 'stroke-width': 2, 'stroke-linejoin': 'round' }));
+        pts.forEach(function (p) {
+          var m = el('circle', { cx: p[0], cy: p[1], r: 4, fill: color, stroke: 'var(--surface)', 'stroke-width': 2 });
+          m.appendChild(el('title', {}, s.name + ' · ' + c.labels[p[3]] + ': ' + fmt(p[2], c.format)));
+          svg.appendChild(m);
+        });
+      }
+    });
+    var card = el('div', { 'class': 'card chart' });
+    card.appendChild(el('h3', {}, c.title));
+    card.appendChild(svg);
+    if (series.length > 1) {
+      var lg = el('div', { 'class': 'legend' });
+      series.forEach(function (s, si) { lg.innerHTML += '<span><i style="background:' + COLORS[si] + '"></i>' + esc(s.name) + '</span>'; });
+      card.appendChild(lg);
+    }
+    document.getElementById('charts').appendChild(card);
+  }
+  (D.charts || []).forEach(chart);
+
+  var tb = D.table;
+  if (tb && tb.columns) {
+    if (tb.title) document.getElementById('table-title').textContent = tb.title;
+    var cols = tb.columns, h = '<thead><tr>';
+    cols.forEach(function (c) { h += '<th class="' + (c.format === 'text' ? '' : 'num') + '">' + esc(c.label) + '</th>'; });
+    h += '</tr></thead><tbody>';
+    (tb.rows || []).forEach(function (r) {
+      h += '<tr>' + cols.map(function (c) { return '<td class="' + (c.format === 'text' ? '' : 'num') + '">' + esc(fmt(r[c.key], c.format)) + '</td>'; }).join('') + '</tr>';
+    });
+    h += '</tbody>';
+    if (cols.some(function (c) { return c.total; })) {
+      h += '<tfoot><tr>' + cols.map(function (c, i) {
+        if (!c.total) return '<td>' + (i === 0 ? 'Total' : '') + '</td>';
+        var sum = (tb.rows || []).reduce(function (a, r) { return isNum(r[c.key]) ? a + r[c.key] : a; }, 0);
+        return '<td class="num">' + esc(fmt(sum, c.format)) + '</td>';
+      }).join('') + '</tr></tfoot>';
+    }
+    document.getElementById('table').innerHTML = h;
+  }
+})();
+</script>
+</body>
+</html>

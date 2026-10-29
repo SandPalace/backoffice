@@ -10,7 +10,7 @@ import { ClaudeIcon, CodexIcon } from '@/components/BrandIcons'
 import { AVATAR_PALETTES } from '@/components/office/officeLayout'
 import { COO_AGENT, ROSTERS, findAgent } from '@/lib/roster'
 import { sessionLink } from '@/lib/claude'
-import { getJson, post, send, useAgentOS } from '@/lib/useAgentOS'
+import { getJson, post, send, useBackOffice } from '@/lib/useBackOffice'
 import type { Team, TeamMember } from '@/lib/types'
 
 const AvatarGallery = dynamic(() => import('@/components/AvatarGallery'), { ssr: false })
@@ -205,7 +205,7 @@ const blank = (): Draft => ({ id: null, name: '', members: [] })
 const fromTeam = (t: Team): Draft => ({ id: t.id, name: t.name, members: t.members.map((m) => ({ ...m })) })
 
 export default function EquiposPage() {
-  const { teams, coo, conn, ready, workspace, workspaceId } = useAgentOS()
+  const { teams, coo, conn, ready, workspace, workspaceId } = useBackOffice()
   const [draft, setDraft] = useState<Draft>(blank())
   const [error, setError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
@@ -347,7 +347,7 @@ export default function EquiposPage() {
             <span className="h-3 w-3 shrink-0 rounded-sm" style={{ background: AVATAR_PALETTES[cooFace].shirt }} />
             <span className="min-w-0 flex-1">
               <span className="block truncate text-sm font-semibold">{(coo?.display_name || COO_AGENT.name)}</span>
-              <span className="block truncate text-xs font-normal text-muted">Puente y guía de AgentOS</span>
+              <span className="block truncate text-xs font-normal text-muted">Puente y guía de Back Office</span>
             </span>
           </button>
           <div className="label px-2 pb-2 pt-3">Equipos</div>
@@ -372,9 +372,9 @@ export default function EquiposPage() {
         {editCoo ? (
           <section className="flex flex-col gap-4">
             <div className="card flex flex-col gap-3 p-5">
-              <div className="label">Assistant · recepción, puente y guía de AgentOS</div>
+              <div className="label">Assistant · recepción, puente y guía de Back Office</div>
               <p className="text-xs leading-relaxed text-muted">
-                Assistant es quien te recibe en la recepción de la oficina y no pertenece a ningún equipo. Es la misma en todos tus proyectos: su nombre, avatar, contexto y conversación valen para todos, y en cada uno ve los equipos y tareas de ese proyecto. Conoce el roster completo, ve las tareas y el estado de los agentes de tus equipos activos y te guía por AgentOS. Aquí le pones nombre, avatar y contexto.
+                Assistant es quien te recibe en la recepción de la oficina y no pertenece a ningún equipo. Es la misma en todos tus proyectos: su nombre, avatar, contexto y conversación valen para todos, y en cada uno ve los equipos y tareas de ese proyecto. Conoce el roster completo, ve las tareas y el estado de los agentes de tus equipos activos y te guía por Back Office. Aquí le pones nombre, avatar y contexto.
               </p>
             </div>
             <div className="card flex flex-col gap-4 p-5">

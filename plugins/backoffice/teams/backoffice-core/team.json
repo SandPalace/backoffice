@@ -1,0 +1,15 @@
+{
+  "id": "backoffice-core",
+  "name": "Back Office",
+  "system": true,
+  "description": "Back Office core: hooks that report the status of each Claude session, a local server (SQLite + SSE), an MCP for tasks and deliverables, and Assistant (id `coo`): the default agent that guides the experience and routes work to the teams.",
+  "agents": [
+    "coo"
+  ],
+  "skills": [
+    "backoffice-guide",
+    "canvas-artifacts",
+    "team-status",
+    "update-backoffice"
+  ]
+}

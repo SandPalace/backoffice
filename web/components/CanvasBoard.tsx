@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import type { Artifact, ArtifactKind, ArtifactScope, ArtifactStatus } from '@/lib/types'
-import { getJson, useAgentOS } from '@/lib/useAgentOS'
+import { getJson, useBackOffice } from '@/lib/useBackOffice'
 import { COO_AGENT, findAgent } from '@/lib/roster'
 import CanvasDetail from './CanvasDetail'
 
@@ -24,7 +24,7 @@ export const ago = (ts: number) => {
 
 /** Nombre y cara de un agente: el que la persona le puso en un equipo de este proyecto, si no el del roster. */
 export function useAgentLabel() {
-  const { teams, coo } = useAgentOS()
+  const { teams, coo } = useBackOffice()
   return (id: string | null | undefined): { name: string; face: number } => {
     if (!id) return { name: 'Sin agente', face: 0 }
     if (id === 'coo') return { name: coo?.display_name || COO_AGENT.name, face: coo?.avatar ?? COO_AGENT.face ?? 11 }
@@ -57,7 +57,7 @@ export function StatusChip({ status }: { status: ArtifactStatus }) {
 
 // Tablero de artefactos de un alcance (sin alcance = todo el proyecto). Se actualiza en vivo con los eventos `canvas`.
 export default function CanvasBoard({ scopeType, scopeId, status, compact = false }: { scopeType?: ArtifactScope; scopeId?: string; status?: ArtifactStatus; compact?: boolean }) {
-  const { workspaceId, canvasTick } = useAgentOS()
+  const { workspaceId, canvasTick } = useBackOffice()
   const label = useAgentLabel()
   const [items, setItems] = useState<Artifact[] | null>(null)
   const [err, setErr] = useState<string | null>(null)

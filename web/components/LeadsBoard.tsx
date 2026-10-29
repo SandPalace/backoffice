@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import type { Lead, LeadSource, LeadStage } from '@/lib/types'
-import { post, send } from '@/lib/useAgentOS'
+import { post, send } from '@/lib/useBackOffice'
 import Modal from './Modal'
 import WhatsAppPanel from './WhatsAppPanel'
 

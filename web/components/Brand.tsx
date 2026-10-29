@@ -11,7 +11,7 @@ export function Logo() {
           <i className="absolute bottom-0 right-[1px] h-[12px] w-[12px] rounded-sm bg-purple" />
           <i className="absolute bottom-[1px] left-[3px] h-[8px] w-[8px] rounded-sm bg-teal" />
         </span>
-        AgentOS
+        Back Office
       </div>
   )
 }

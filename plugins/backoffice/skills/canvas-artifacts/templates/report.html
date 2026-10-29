@@ -1,0 +1,121 @@
+<!doctype html>
+<!--
+  Back Office canvas template: report (one-pager report).
+  Use: copy to $TMPDIR/backoffice-work/<task>/, replace every placeholder (TOKEN in double curly braces) with real data from the task or its files,
+  write [NO DATA: what is missing] for any fact you do not have, delete optional blocks you do not use.
+  REPEAT blocks: copy the marked element as many times as the comment allows.
+  Self-contained on purpose: no external URLs, fonts, scripts or fetch. Keep it that way.
+-->
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{{TITLE}}</title>
+<style>
+/* ===== Back Office canvas · shared base: identical in every template, do not edit; page styles go below ===== */
+:root{color-scheme:light;
+  --bg:#f6f6f4;--surface:#fff;--surface-2:#f0f0ed;--ink:#1b1c1e;--muted:#62666d;--line:#e2e2de;
+  --accent:#2a78d6;--accent-bg:#e7f0fb;--ok:#1d7a45;--ok-bg:#e3f3e9;--warn:#9a6200;--warn-bg:#fbf0d9;
+  --bad:#b42d2d;--bad-bg:#fbe5e5;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--radius:12px;--shadow:0 1px 2px rgba(0,0,0,.05)}
+@media (prefers-color-scheme:dark){:root{color-scheme:dark;
+  --bg:#131416;--surface:#1c1e21;--surface-2:#25282c;--ink:#ecebe8;--muted:#a3a7ae;--line:#30343a;
+  --accent:#5b9cec;--accent-bg:#1a2a40;--ok:#55c486;--ok-bg:#163020;--warn:#e3ad4a;--warn-bg:#33270e;
+  --bad:#ef7171;--bad-bg:#3a1b1b;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--shadow:none}}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif}
+.page{max-width:980px;margin:0 auto;padding:32px 20px 48px}
+.top{border-bottom:1px solid var(--line);padding-bottom:16px;margin-bottom:22px}
+.eyebrow{font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
+h1{font-size:28px;line-height:1.2;margin:6px 0;letter-spacing:-.01em}
+h2{font-size:17px;line-height:1.3;margin:28px 0 12px}
+h3{font-size:15px;margin:0 0 6px}
+p{margin:0 0 10px}
+.meta{color:var(--muted);font-size:13px}
+.meta span+span::before{content:"·";margin:0 8px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:16px 18px;box-shadow:var(--shadow)}
+.grid{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}
+.chip{display:inline-block;font-size:12px;font-weight:600;line-height:1.6;padding:1px 10px;border-radius:999px;background:var(--surface-2);color:var(--muted);white-space:nowrap}
+.chip.ok{background:var(--ok-bg);color:var(--ok)}.chip.warn{background:var(--warn-bg);color:var(--warn)}
+.chip.bad{background:var(--bad-bg);color:var(--bad)}.chip.info{background:var(--accent-bg);color:var(--accent)}
+.ask{margin-top:28px;border:1px solid var(--accent);border-left-width:5px;background:var(--accent-bg);border-radius:var(--radius);padding:16px 18px}
+.ask h2{margin:0 0 8px;color:var(--accent)}
+.ask ol,.ask ul{margin:0;padding-left:20px}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+.num{text-align:right;font-variant-numeric:tabular-nums}
+.scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.muted{color:var(--muted)}
+.foot{margin-top:36px;padding-top:12px;border-top:1px solid var(--line);color:var(--muted);font-size:12px}
+@media (max-width:600px){.page{padding:22px 16px 36px}h1{font-size:23px}.card{padding:14px}}
+@media print{:root{--bg:#fff;--surface:#fff;--surface-2:#f2f2f2;--ink:#000;--muted:#444;--line:#ccc;--shadow:none}
+  body{font-size:12px}.page{max-width:none;padding:0}.card,.ask,tr{break-inside:avoid}.no-print{display:none!important}}
+/* ===== end shared base ===== */
+.summary{font-size:17px;line-height:1.6}
+.points{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));margin:0;padding:0;list-style:none}
+.points li{background:var(--surface);border:1px solid var(--line);border-top:3px solid var(--accent);border-radius:var(--radius);padding:12px 14px}
+.points b{display:block;font-size:20px;line-height:1.25;margin-bottom:2px}
+.finding{margin-bottom:12px}
+.finding .chip{margin-left:6px;vertical-align:2px}
+.sources{margin:0;padding-left:20px;color:var(--muted);font-size:13px}
+</style>
+</head>
+<body>
+<main class="page">
+  <header class="top">
+    <div class="eyebrow">{{REPORT_TYPE}}</div>
+    <h1>{{TITLE}}</h1>
+    <div class="meta"><span>Periodo: {{PERIOD}}</span><span>Para: {{AUDIENCE}}</span><span>Preparó: {{AGENT_NAME}}</span><span>{{DATE}}</span></div>
+  </header>
+
+  <section>
+    <h2>Resumen</h2>
+    <p class="summary">{{SUMMARY_2_TO_4_SENTENCES}}</p>
+  </section>
+
+  <section>
+    <h2>Puntos clave</h2>
+    <!-- REPEAT <li>: 3 to 6 key points. <b> = the number or short fact, the text = what it means. -->
+    <ul class="points">
+      <li><b>{{KEY_FACT_1}}</b><span class="muted">{{KEY_POINT_1}}</span></li>
+      <li><b>{{KEY_FACT_2}}</b><span class="muted">{{KEY_POINT_2}}</span></li>
+      <li><b>{{KEY_FACT_3}}</b><span class="muted">{{KEY_POINT_3}}</span></li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Hallazgos</h2>
+    <!-- REPEAT .finding: one card per finding section. Chip class: ok (bien), warn (atención), bad (problema), info (dato). -->
+    <article class="card finding">
+      <h3>{{FINDING_TITLE}} <span class="chip warn">{{FINDING_LABEL}}</span></h3>
+      <p>{{FINDING_TEXT}}</p>
+      <p class="muted">Fuente: {{FINDING_SOURCE}}</p>
+    </article>
+    <article class="card finding">
+      <h3>{{FINDING_TITLE}} <span class="chip ok">{{FINDING_LABEL}}</span></h3>
+      <p>{{FINDING_TEXT}}</p>
+      <p class="muted">Fuente: {{FINDING_SOURCE}}</p>
+    </article>
+  </section>
+
+  <section>
+    <h2>Fuentes</h2>
+    <!-- REPEAT <li>: every file, tool result or document a number came from. Workspace path or name, never invented. -->
+    <ol class="sources">
+      <li>{{SOURCE_1}}</li>
+    </ol>
+  </section>
+
+  <section class="ask">
+    <h2>Qué necesito que valides</h2>
+    <!-- REPEAT <li>: 1 to 3 concrete questions the owner can answer with approve or a comment. -->
+    <ol>
+      <li>{{QUESTION_FOR_OWNER}}</li>
+    </ol>
+  </section>
+
+  <footer class="foot">Borrador preparado por {{AGENT_NAME}} en Back Office · {{DATE}} · Los datos marcados [NO DATA] faltan y no se inventaron.</footer>
+</main>
+</body>
+</html>

@@ -34,7 +34,7 @@ const VISITOR_COLORS = ['#5A6470', '#0EA5E9', '#EC4899', '#84CC16']
 
 // Une la lista del equipo con las sesiones en vivo. Una sesión se sienta en el escritorio de su agente;
 // las que no pertenecen a nadie (sesiones sueltas de Claude) se sientan como visitantes.
-// "agentos:cmo" → "cmo": los hooks reportan el agente con el prefijo de su plugin.
+// "backoffice:cmo" → "cmo": los hooks reportan el agente con el prefijo de su plugin.
 const agentKey = (v: string | null | undefined) => (v ?? '').toLowerCase().split(':').pop()!.trim()
 
 // El COO (`coo`) siempre va primero: es el agente por defecto del sistema y tiene su propia oficina.

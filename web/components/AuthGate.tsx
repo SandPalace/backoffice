@@ -1,6 +1,6 @@
 'use client'
 import { createContext, useCallback, useContext, useEffect, useState } from 'react'
-import { SERVER, apiFetch } from '@/lib/useAgentOS'
+import { SERVER, apiFetch } from '@/lib/useBackOffice'
 import { Logo } from './Brand'
 
 type Phase = 'checking' | 'down' | 'unconfigured' | 'login' | 'in'
@@ -11,7 +11,7 @@ export const useAuth = () => useContext(Ctx)
 const FIELD = 'rounded-sm border border-line bg-surface px-3 py-2 text-sm outline-none focus:border-blue'
 
 /**
- * Local sign-in for the person who owns this AgentOS. The username and password live in data/.env (or env vars, or
+ * Local sign-in for the person who owns this Back Office. The username and password live in data/.env (or env vars, or
  * data/config.json); the form only checks them. Nothing under it (office, SSE, files) loads until there is a session.
  * If the server is unreachable the pages render so they can show their own "server not found" notice.
  */
@@ -35,8 +35,8 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     check()
     const onAuth = () => check()
-    window.addEventListener('agentos:auth', onAuth)
-    return () => window.removeEventListener('agentos:auth', onAuth)
+    window.addEventListener('backoffice:auth', onAuth)
+    return () => window.removeEventListener('backoffice:auth', onAuth)
   }, [check])
 
   const logout = useCallback(async () => {
@@ -68,10 +68,10 @@ function Unconfigured({ onRetry }: { onRetry: () => void }) {
       <div>
         <h1 className="text-lg font-extrabold tracking-tight">Falta configurar tu acceso</h1>
         <p className="mt-1 text-xs leading-relaxed text-muted">
-          Para entrar a tu oficina, define tu usuario y tu contraseña en un archivo de esta computadora. Dentro de la carpeta de AgentOS crea <code className="font-mono">data/.env</code> con estas dos líneas:
+          Para entrar a tu oficina, define tu usuario y tu contraseña en un archivo de esta computadora. Dentro de la carpeta de Back Office crea <code className="font-mono">data/.env</code> con estas dos líneas:
         </p>
       </div>
-      <pre className="overflow-x-auto rounded-sm border border-line bg-bg px-3 py-2 font-mono text-xs">{`AGENTOS_USER=tu-usuario\nAGENTOS_PASSWORD=una-contraseña-larga`}</pre>
+      <pre className="overflow-x-auto rounded-sm border border-line bg-bg px-3 py-2 font-mono text-xs">{`BACKOFFICE_USER=tu-usuario\nBACKOFFICE_PASSWORD=una-contraseña-larga`}</pre>
       <p className="text-xs leading-relaxed text-muted">
         En la terminal, para que nadie más lo lea: <code className="font-mono">chmod 600 data/.env</code>. También sirven las variables de entorno con esos nombres o <code className="font-mono">data/config.json</code> con <code className="font-mono">{'{"user": "…", "password": "…"}'}</code>.
       </p>

@@ -10,7 +10,7 @@ export default function CatalogPage() {
     <main className="mx-auto flex max-w-[1500px] flex-col gap-4 px-4 py-6 sm:px-6">
       <header className="flex items-center justify-between">
         <div>
-          <div className="label">AgentOS</div>
+          <div className="label">Back Office</div>
           <h1 className="text-2xl font-extrabold tracking-tight">Catálogo de assets 3D</h1>
         </div>
         <Link href="/" className="rounded-full border border-line bg-surface px-4 py-1.5 text-xs font-semibold hover:bg-bg">Volver a la oficina</Link>

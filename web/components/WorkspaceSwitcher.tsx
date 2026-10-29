@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import Modal from './Modal'
-import { DEFAULT_WORKSPACE, useAgentOS } from '@/lib/useAgentOS'
+import { DEFAULT_WORKSPACE, useBackOffice } from '@/lib/useBackOffice'
 import type { Workspace } from '@/lib/types'
 
 type Dialog = { kind: 'create' } | { kind: 'rename'; ws: Workspace } | { kind: 'archive'; ws: Workspace } | null
@@ -9,7 +9,7 @@ type Dialog = { kind: 'create' } | { kind: 'rename'; ws: Workspace } | { kind: '
 const isEmpty = (w: Workspace) => w.counts.tasks + w.counts.teams + w.counts.outputs === 0
 
 export default function WorkspaceSwitcher() {
-  const { workspaces, workspace, workspaceId, setWorkspace, conn } = useAgentOS()
+  const { workspaces, workspace, workspaceId, setWorkspace, conn } = useBackOffice()
   const [open, setOpen] = useState(false)
   const [dialog, setDialog] = useState<Dialog>(null)
   const root = useRef<HTMLDivElement>(null)
@@ -85,7 +85,7 @@ export default function WorkspaceSwitcher() {
 }
 
 function NameDialog({ title, cta, ws, onClose }: { title: string; cta: string; ws?: Workspace; onClose: () => void }) {
-  const { createWorkspace, renameWorkspace, setWorkspace } = useAgentOS()
+  const { createWorkspace, renameWorkspace, setWorkspace } = useBackOffice()
   const [name, setName] = useState(ws?.name ?? '')
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState<string | null>(null)
@@ -123,7 +123,7 @@ function NameDialog({ title, cta, ws, onClose }: { title: string; cta: string; w
 }
 
 function ArchiveDialog({ ws, onClose }: { ws: Workspace; onClose: () => void }) {
-  const { archiveWorkspace } = useAgentOS()
+  const { archiveWorkspace } = useBackOffice()
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState<string | null>(null)
   const empty = isEmpty(ws)
@@ -136,7 +136,7 @@ function ArchiveDialog({ ws, onClose }: { ws: Workspace; onClose: () => void }) 
       <div className="flex flex-col gap-4 p-5">
         <div className="text-sm font-bold">¿Archivar «{ws.name}»?</div>
         <p className="text-xs leading-relaxed text-muted">
-          Deja de aparecer en la lista y vuelves al espacio «Default». <strong className="text-ink">No se borra ningún archivo</strong>: las tareas, los entregables, las carpetas en tu disco y los archivos guardados en AgentOS quedan intactos. Si creas un espacio con el mismo identificador, se reactiva.
+          Deja de aparecer en la lista y vuelves al espacio «Default». <strong className="text-ink">No se borra ningún archivo</strong>: las tareas, los entregables, las carpetas en tu disco y los archivos guardados en Back Office quedan intactos. Si creas un espacio con el mismo identificador, se reactiva.
         </p>
         {!empty && <p className="rounded-sm bg-amber-soft px-3 py-2 text-xs text-ink">Tiene {ws.counts.tasks} {ws.counts.tasks === 1 ? 'tarea' : 'tareas'}, {ws.counts.teams} {ws.counts.teams === 1 ? 'equipo' : 'equipos'} y {ws.counts.outputs} {ws.counts.outputs === 1 ? 'entregable' : 'entregables'}.</p>}
         {err && <div role="alert" className="rounded-sm bg-red-soft px-3 py-2 text-xs text-red">{err}</div>}

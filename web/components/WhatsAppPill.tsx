@@ -2,10 +2,10 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import type { WaStatus } from '@/lib/types'
-import { getJson, useAgentOS } from '@/lib/useAgentOS'
+import { getJson, useBackOffice } from '@/lib/useBackOffice'
 
 export function useWaStatus() {
-  const { waTick, workspaceId } = useAgentOS()
+  const { waTick, workspaceId } = useBackOffice()
   const [status, setStatus] = useState<WaStatus | null>(null)
   useEffect(() => {
     let off = false

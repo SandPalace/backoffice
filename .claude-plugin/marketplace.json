@@ -1,17 +1,17 @@
 {
-  "name": "agentos",
+  "name": "backoffice",
   "owner": {
-    "name": "AgentOS"
+    "name": "Back Office"
   },
   "plugins": [
     {
-      "name": "agentos",
-      "source": "./plugins/agentos",
-      "description": "AgentOS completo: el Assistant, todos los equipos de agentes (marketing, ventas, cobranza, dirección, finanzas y desarrollo web), el servidor local, los hooks y las herramientas MCP. Los equipos se arman dentro de la app.",
+      "name": "backoffice",
+      "source": "./plugins/backoffice",
+      "description": "Back Office completo: el Assistant, todos los equipos de agentes (marketing, ventas, cobranza, dirección, finanzas y desarrollo web), el servidor local, los hooks y las herramientas MCP. Los equipos se arman dentro de la app.",
       "author": {
-        "name": "AgentOS"
+        "name": "Back Office"
       }
     }
   ],
-  "description": "AgentOS: equipos de agentes de Claude listos para instalar, en un solo plugin (agentes, skills, hooks y MCP)."
+  "description": "Back Office: equipos de agentes de Claude listos para instalar, en un solo plugin (agentes, skills, hooks y MCP)."
 }

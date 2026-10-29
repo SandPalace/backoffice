@@ -1,6 +1,6 @@
 'use client'
 import { useEffect, useState } from 'react'
-import { getJson, put, send } from '@/lib/useAgentOS'
+import { getJson, put, send } from '@/lib/useBackOffice'
 import { findAgent } from '@/lib/roster'
 
 // Archivo .md de Claude de un agente. scope=project → <raíz del proyecto>/.claude/agents/<id>.md (copia de este proyecto);

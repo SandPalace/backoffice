@@ -4,14 +4,14 @@ import { existsSync, readFileSync, readdirSync } from 'node:fs'
 import { join } from 'node:path'
 import { ROSTERS, ROSTER_AGENTS } from './roster.ts'
 
-const PLUGIN = join(import.meta.dirname, '..', '..', 'plugins', 'agentos')
+const PLUGIN = join(import.meta.dirname, '..', '..', 'plugins', 'backoffice')
 
 test('los ids de agentes son únicos en todo el roster', () => {
   const ids = ROSTER_AGENTS.map((a) => a.id)
   assert.equal(new Set(ids).size, ids.length)
 })
 
-test('cada grupo del roster coincide con su equipo (plugins/agentos/teams/<id>/team.json)', () => {
+test('cada grupo del roster coincide con su equipo (plugins/backoffice/teams/<id>/team.json)', () => {
   const teams = readdirSync(join(PLUGIN, 'teams')).filter((d) => existsSync(join(PLUGIN, 'teams', d, 'team.json')))
   assert.deepEqual([...ROSTERS.map((g) => g.id)].sort(), teams.sort(), 'grupos del roster ≠ equipos del plugin')
   for (const g of ROSTERS) {

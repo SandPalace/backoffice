@@ -1,5 +1,5 @@
-// Network layer of the file manager: every call goes through the AgentOS server, never straight to disk.
-import { SERVER, apiFetch } from './useAgentOS'
+// Network layer of the file manager: every call goes through the Back Office server, never straight to disk.
+import { SERVER, apiFetch } from './useBackOffice'
 import { listingUrl, objectPutUrl, stripSlash, uploadLimitMessage } from './files'
 import type { FileEntry, FolderEntry } from './files'
 
@@ -23,7 +23,7 @@ export function friendlyError(status: number, fallback: string, size?: number, n
   if (status === 403) return 'Esa carpeta es de solo lectura: solo puedes modificar "Archivos del equipo".'
   if (status === 404) return 'Ese elemento ya no existe. Actualiza la lista.'
   if (status === 503) return 'El almacenamiento no está disponible por ahora.'
-  if (status === 0) return 'No hay conexión con el servidor de AgentOS.'
+  if (status === 0) return 'No hay conexión con el servidor de Back Office.'
   return fallback
 }
 
@@ -120,7 +120,7 @@ export function putFile(ws: string, key: string, file: Blob, contentType: string
 // answer 403 forbidden_key; then we copy through the server (GET + PUT) and remember the item as restored
 // so the trash view hides it (trash/ itself cannot be modified from the web).
 
-const RESTORED_KEY = (ws: string) => `agentos.restored.${ws}`
+const RESTORED_KEY = (ws: string) => `backoffice.restored.${ws}`
 export function restoredSet(ws: string): Set<string> {
   try { return new Set(JSON.parse(localStorage.getItem(RESTORED_KEY(ws)) ?? '[]')) } catch { return new Set() }
 }

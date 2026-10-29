@@ -1,7 +1,7 @@
 import type { Member } from './team'
 
-// Roster: los agentes disponibles para armar equipos, agrupados por equipo. Todo viene en un solo plugin (`agentos`):
-// `id` del grupo = carpeta en plugins/agentos/teams/<id>/team.json; `id` de cada agente = archivo en plugins/agentos/agents/.
+// Roster: los agentes disponibles para armar equipos, agrupados por equipo. Todo viene en un solo plugin (`backoffice`):
+// `id` del grupo = carpeta en plugins/backoffice/teams/<id>/team.json; `id` de cada agente = archivo en plugins/backoffice/agents/.
 // roster.test.ts comprueba que cada grupo coincida con su team.json.
 export interface RosterGroup {
   id: string
@@ -81,7 +81,7 @@ export const ROSTERS: RosterGroup[] = [
 // Assistant (id interno `coo`) recibe a la persona en la recepción; la persona puede renombrarla en Equipos: cara femenina (11, de pelo largo) y su camisa naranja.
 export const COO_AGENT: Member = { id: 'coo', name: 'Assistant', role: 'Recepción, puente y guía: roster, equipos y tareas', color: '#f4511e', hair: '#14161A', face: 11 }
 
-ROSTERS.push({ id: 'agentos-core', name: 'AgentOS', system: true, agents: [COO_AGENT] })
+ROSTERS.push({ id: 'backoffice-core', name: 'Back Office', system: true, agents: [COO_AGENT] })
 
 export const ROSTER_AGENTS: Member[] = ROSTERS.flatMap((g) => g.agents)
 export const findAgent = (id: string) => ROSTER_AGENTS.find((a) => a.id === id)

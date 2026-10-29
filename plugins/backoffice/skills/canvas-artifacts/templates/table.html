@@ -1,0 +1,160 @@
+<!doctype html>
+<!--
+  Back Office canvas template: table (sortable, filterable data table with totals).
+  Use: copy to $TMPDIR/backoffice-work/<task>/. Edit the header tokens and ONLY the JSON block with id="data".
+  - columns[]: key, label, format "text" | "number" | "money" | "percent" (0.25 = 25 %) | "date" (YYYY-MM-DD), total: true to sum it.
+  - rows[]: one object per row with the column keys. Numbers are plain numbers; a missing value = null (shows [NO DATA]).
+  - Click a header to sort; the search box filters every text column; totals follow the filter.
+  Self-contained on purpose: no external URLs, fonts, scripts or fetch. Keep it that way.
+-->
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{{TITLE}}</title>
+<style>
+/* ===== Back Office canvas · shared base: identical in every template, do not edit; page styles go below ===== */
+:root{color-scheme:light;
+  --bg:#f6f6f4;--surface:#fff;--surface-2:#f0f0ed;--ink:#1b1c1e;--muted:#62666d;--line:#e2e2de;
+  --accent:#2a78d6;--accent-bg:#e7f0fb;--ok:#1d7a45;--ok-bg:#e3f3e9;--warn:#9a6200;--warn-bg:#fbf0d9;
+  --bad:#b42d2d;--bad-bg:#fbe5e5;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--radius:12px;--shadow:0 1px 2px rgba(0,0,0,.05)}
+@media (prefers-color-scheme:dark){:root{color-scheme:dark;
+  --bg:#131416;--surface:#1c1e21;--surface-2:#25282c;--ink:#ecebe8;--muted:#a3a7ae;--line:#30343a;
+  --accent:#5b9cec;--accent-bg:#1a2a40;--ok:#55c486;--ok-bg:#163020;--warn:#e3ad4a;--warn-bg:#33270e;
+  --bad:#ef7171;--bad-bg:#3a1b1b;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--shadow:none}}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif}
+.page{max-width:980px;margin:0 auto;padding:32px 20px 48px}
+.top{border-bottom:1px solid var(--line);padding-bottom:16px;margin-bottom:22px}
+.eyebrow{font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
+h1{font-size:28px;line-height:1.2;margin:6px 0;letter-spacing:-.01em}
+h2{font-size:17px;line-height:1.3;margin:28px 0 12px}
+h3{font-size:15px;margin:0 0 6px}
+p{margin:0 0 10px}
+.meta{color:var(--muted);font-size:13px}
+.meta span+span::before{content:"·";margin:0 8px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:16px 18px;box-shadow:var(--shadow)}
+.grid{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}
+.chip{display:inline-block;font-size:12px;font-weight:600;line-height:1.6;padding:1px 10px;border-radius:999px;background:var(--surface-2);color:var(--muted);white-space:nowrap}
+.chip.ok{background:var(--ok-bg);color:var(--ok)}.chip.warn{background:var(--warn-bg);color:var(--warn)}
+.chip.bad{background:var(--bad-bg);color:var(--bad)}.chip.info{background:var(--accent-bg);color:var(--accent)}
+.ask{margin-top:28px;border:1px solid var(--accent);border-left-width:5px;background:var(--accent-bg);border-radius:var(--radius);padding:16px 18px}
+.ask h2{margin:0 0 8px;color:var(--accent)}
+.ask ol,.ask ul{margin:0;padding-left:20px}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+.num{text-align:right;font-variant-numeric:tabular-nums}
+.scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.muted{color:var(--muted)}
+.foot{margin-top:36px;padding-top:12px;border-top:1px solid var(--line);color:var(--muted);font-size:12px}
+@media (max-width:600px){.page{padding:22px 16px 36px}h1{font-size:23px}.card{padding:14px}}
+@media print{:root{--bg:#fff;--surface:#fff;--surface-2:#f2f2f2;--ink:#000;--muted:#444;--line:#ccc;--shadow:none}
+  body{font-size:12px}.page{max-width:none;padding:0}.card,.ask,tr{break-inside:avoid}.no-print{display:none!important}}
+/* ===== end shared base ===== */
+.tools{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;margin-bottom:12px}
+.tools input{font:inherit;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:8px 12px;min-width:240px;flex:1;max-width:420px}
+.tools input:focus{outline:2px solid var(--accent);outline-offset:1px}
+th button{all:unset;cursor:pointer;display:inline-flex;gap:4px;align-items:center}
+th button:focus-visible{outline:2px solid var(--accent);border-radius:4px}
+th .arrow{opacity:.35;font-size:10px}
+th[aria-sort] .arrow{opacity:1;color:var(--accent)}
+tbody tr:hover{background:var(--surface-2)}
+tfoot td{font-weight:700;border-top:2px solid var(--line);border-bottom:0}
+.nodata{color:var(--warn);font-weight:600}
+.error{background:var(--bad-bg);color:var(--bad);border-radius:var(--radius);padding:12px 14px;font-weight:600}
+</style>
+</head>
+<body>
+<main class="page">
+  <header class="top">
+    <div class="eyebrow">Tabla de datos</div>
+    <h1>{{TITLE}}</h1>
+    <div class="meta"><span>Periodo: {{PERIOD}}</span><span>Fuente: {{DATA_SOURCE}}</span><span>Preparó: {{AGENT_NAME}}</span><span>{{DATE}}</span></div>
+  </header>
+  <div id="err"></div>
+  <div class="tools no-print">
+    <input id="q" type="search" placeholder="Buscar en la tabla…" aria-label="Buscar en la tabla">
+    <span class="meta" id="count"></span>
+  </div>
+  <div class="card scroll"><table id="t"></table></div>
+  <section class="ask">
+    <h2>Qué necesito que valides</h2>
+    <ol><li>{{QUESTION_FOR_OWNER}}</li></ol>
+  </section>
+  <footer class="foot">Preparado por {{AGENT_NAME}} en Back Office · {{DATE}} · Los valores [NO DATA] faltan en la fuente y no se inventaron.</footer>
+</main>
+
+<!-- DATA: the only part to fill besides the header tokens. Must stay valid JSON. -->
+<script type="application/json" id="data">
+{
+  "currency": "MXN",
+  "columns": [
+    {"key": "name", "label": "{{COLUMN}}", "format": "text"},
+    {"key": "date", "label": "{{COLUMN}}", "format": "date"},
+    {"key": "amount", "label": "{{COLUMN}}", "format": "money", "total": true}
+  ],
+  "rows": [
+    {"name": "{{ROW_NAME}}", "date": "{{YYYY-MM-DD}}", "amount": null}
+  ]
+}
+</script>
+<script>
+(function () {
+  var D;
+  try { D = JSON.parse(document.getElementById('data').textContent); }
+  catch (e) { document.getElementById('err').innerHTML = '<p class="error">El bloque de datos no es JSON válido: ' + e.message + '</p>'; return; }
+  var cols = D.columns || [], rows = D.rows || [], cur = D.currency || 'MXN', sortKey = null, dir = 1;
+  function isNum(v) { return typeof v === 'number' && isFinite(v); }
+  function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+  function fmt(v, f) {
+    if (v == null || v === '') return '<span class="nodata">[NO DATA]</span>';
+    if (f === 'date' && /^\d{4}-\d{2}-\d{2}$/.test(v)) { var p = v.split('-'); return p[2] + '/' + p[1] + '/' + p[0]; }
+    if (f === 'text' || f === 'date' || !isNum(v)) return esc(v);
+    var o = f === 'money' ? { style: 'currency', currency: cur, minimumFractionDigits: Number.isInteger(v) ? 0 : 2 } : f === 'percent' ? { style: 'percent', maximumFractionDigits: 1 } : { maximumFractionDigits: 2 };
+    try { return new Intl.NumberFormat('es-MX', o).format(v); } catch (e) { return esc(v); }
+  }
+  function numeric(c) { return c.format !== 'text' && c.format !== 'date'; }
+  function render() {
+    var q = document.getElementById('q').value.trim().toLowerCase();
+    var list = rows.filter(function (r) {
+      return !q || cols.some(function (c) { return r[c.key] != null && String(r[c.key]).toLowerCase().indexOf(q) >= 0; });
+    });
+    if (sortKey) {
+      list.sort(function (a, b) {
+        var x = a[sortKey], y = b[sortKey];
+        if (x == null) return 1; if (y == null) return -1;
+        return (isNum(x) && isNum(y) ? x - y : String(x).localeCompare(String(y), 'es')) * dir;
+      });
+    }
+    var h = '<thead><tr>' + cols.map(function (c) {
+      var s = sortKey === c.key ? ' aria-sort="' + (dir > 0 ? 'ascending' : 'descending') + '"' : '';
+      var ar = sortKey === c.key ? (dir > 0 ? '▲' : '▼') : '▲▼';
+      return '<th class="' + (numeric(c) ? 'num' : '') + '"' + s + '><button data-k="' + esc(c.key) + '">' + esc(c.label) + '<span class="arrow">' + ar + '</span></button></th>';
+    }).join('') + '</tr></thead><tbody>';
+    list.forEach(function (r) {
+      h += '<tr>' + cols.map(function (c) { return '<td class="' + (numeric(c) ? 'num' : '') + '">' + fmt(r[c.key], c.format) + '</td>'; }).join('') + '</tr>';
+    });
+    if (!list.length) h += '<tr><td colspan="' + cols.length + '" class="muted">Sin resultados para «' + esc(q) + '».</td></tr>';
+    h += '</tbody>';
+    if (cols.some(function (c) { return c.total; })) {
+      h += '<tfoot><tr>' + cols.map(function (c, i) {
+        if (!c.total) return '<td>' + (i === 0 ? 'Total (' + list.length + ')' : '') + '</td>';
+        var sum = list.reduce(function (a, r) { return isNum(r[c.key]) ? a + r[c.key] : a; }, 0);
+        return '<td class="num">' + fmt(sum, c.format) + '</td>';
+      }).join('') + '</tr></tfoot>';
+    }
+    var t = document.getElementById('t');
+    t.innerHTML = h;
+    document.getElementById('count').textContent = list.length + ' de ' + rows.length + ' filas';
+    Array.prototype.forEach.call(t.querySelectorAll('th button'), function (b) {
+      b.onclick = function () { var k = b.getAttribute('data-k'); dir = sortKey === k ? -dir : 1; sortKey = k; render(); };
+    });
+  }
+  document.getElementById('q').addEventListener('input', render);
+  render();
+})();
+</script>
+</body>
+</html>

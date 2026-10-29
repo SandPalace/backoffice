@@ -1,0 +1,233 @@
+{
+  "description": "Reports the status of each Claude session to Back Office (working, waiting, done; never blocks) and the Meta guardrail: the marketing team may read Meta and leave PAUSED drafts; activating, boosting, budget, billing and publishing stay with the person (fails closed). X-AgentOS-* headers and AGENTOS_* vars are rename compat for one release (the server prefers X-BackOffice-*).",
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/server/src/ensure.mjs\"",
+            "timeout": 8
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "http",
+            "url": "http://127.0.0.1:4780/hooks/UserPromptSubmit",
+            "timeout": 3,
+            "headers": {
+              "X-BackOffice-Port": "$BACKOFFICE_PORT",
+              "X-BackOffice-Workspace": "$BACKOFFICE_WORKSPACE",
+              "X-AgentOS-Port": "$AGENTOS_PORT",
+              "X-AgentOS-Workspace": "$AGENTOS_WORKSPACE"
+            },
+            "allowedEnvVars": [
+              "BACKOFFICE_PORT",
+              "BACKOFFICE_WORKSPACE",
+              "AGENTOS_PORT",
+              "AGENTOS_WORKSPACE"
+            ]
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "http",
+            "url": "http://127.0.0.1:4780/hooks/PreToolUse",
+            "timeout": 3,
+            "headers": {
+              "X-BackOffice-Port": "$BACKOFFICE_PORT",
+              "X-BackOffice-Workspace": "$BACKOFFICE_WORKSPACE",
+              "X-AgentOS-Port": "$AGENTOS_PORT",
+              "X-AgentOS-Workspace": "$AGENTOS_WORKSPACE"
+            },
+            "allowedEnvVars": [
+              "BACKOFFICE_PORT",
+              "BACKOFFICE_WORKSPACE",
+              "AGENTOS_PORT",
+              "AGENTOS_WORKSPACE"
+            ]
+          }
+        ]
+      },
+      {
+        "matcher": "mcp__plugin_backoffice_meta-(ads|browser|ai)__.*|mcp__meta-ai__.*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/meta-gate.mjs\"",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "PermissionRequest": [
+      {
+        "hooks": [
+          {
+            "type": "http",
+            "url": "http://127.0.0.1:4780/hooks/PermissionRequest",
+            "timeout": 3,
+            "headers": {
+              "X-BackOffice-Port": "$BACKOFFICE_PORT",
+              "X-BackOffice-Workspace": "$BACKOFFICE_WORKSPACE",
+              "X-AgentOS-Port": "$AGENTOS_PORT",
+              "X-AgentOS-Workspace": "$AGENTOS_WORKSPACE"
+            },
+            "allowedEnvVars": [
+              "BACKOFFICE_PORT",
+              "BACKOFFICE_WORKSPACE",
+              "AGENTOS_PORT",
+              "AGENTOS_WORKSPACE"
+            ]
+          }
+        ]
+      }
+    ],
+    "Notification": [
+      {
+        "hooks": [
+          {
+            "type": "http",
+            "url": "http://127.0.0.1:4780/hooks/Notification",
+            "timeout": 3,
+            "headers": {
+              "X-BackOffice-Port": "$BACKOFFICE_PORT",
+              "X-BackOffice-Workspace": "$BACKOFFICE_WORKSPACE",
+              "X-AgentOS-Port": "$AGENTOS_PORT",
+              "X-AgentOS-Workspace": "$AGENTOS_WORKSPACE"
+            },
+            "allowedEnvVars": [
+              "BACKOFFICE_PORT",
+              "BACKOFFICE_WORKSPACE",
+              "AGENTOS_PORT",
+              "AGENTOS_WORKSPACE"
+            ]
+          }
+        ]
+      }
+    ],
+    "SubagentStart": [
+      {
+        "hooks": [
+          {
+            "type": "http",
+            "url": "http://127.0.0.1:4780/hooks/SubagentStart",
+            "timeout": 3,
+            "headers": {
+              "X-BackOffice-Port": "$BACKOFFICE_PORT",
+              "X-BackOffice-Workspace": "$BACKOFFICE_WORKSPACE",
+              "X-AgentOS-Port": "$AGENTOS_PORT",
+              "X-AgentOS-Workspace": "$AGENTOS_WORKSPACE"
+            },
+            "allowedEnvVars": [
+              "BACKOFFICE_PORT",
+              "BACKOFFICE_WORKSPACE",
+              "AGENTOS_PORT",
+              "AGENTOS_WORKSPACE"
+            ]
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "hooks": [
+          {
+            "type": "http",
+            "url": "http://127.0.0.1:4780/hooks/SubagentStop",
+            "timeout": 3,
+            "headers": {
+              "X-BackOffice-Port": "$BACKOFFICE_PORT",
+              "X-BackOffice-Workspace": "$BACKOFFICE_WORKSPACE",
+              "X-AgentOS-Port": "$AGENTOS_PORT",
+              "X-AgentOS-Workspace": "$AGENTOS_WORKSPACE"
+            },
+            "allowedEnvVars": [
+              "BACKOFFICE_PORT",
+              "BACKOFFICE_WORKSPACE",
+              "AGENTOS_PORT",
+              "AGENTOS_WORKSPACE"
+            ]
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "http",
+            "url": "http://127.0.0.1:4780/hooks/Stop",
+            "timeout": 3,
+            "headers": {
+              "X-BackOffice-Port": "$BACKOFFICE_PORT",
+              "X-BackOffice-Workspace": "$BACKOFFICE_WORKSPACE",
+              "X-AgentOS-Port": "$AGENTOS_PORT",
+              "X-AgentOS-Workspace": "$AGENTOS_WORKSPACE"
+            },
+            "allowedEnvVars": [
+              "BACKOFFICE_PORT",
+              "BACKOFFICE_WORKSPACE",
+              "AGENTOS_PORT",
+              "AGENTOS_WORKSPACE"
+            ]
+          }
+        ]
+      }
+    ],
+    "StopFailure": [
+      {
+        "hooks": [
+          {
+            "type": "http",
+            "url": "http://127.0.0.1:4780/hooks/StopFailure",
+            "timeout": 3,
+            "headers": {
+              "X-BackOffice-Port": "$BACKOFFICE_PORT",
+              "X-BackOffice-Workspace": "$BACKOFFICE_WORKSPACE",
+              "X-AgentOS-Port": "$AGENTOS_PORT",
+              "X-AgentOS-Workspace": "$AGENTOS_WORKSPACE"
+            },
+            "allowedEnvVars": [
+              "BACKOFFICE_PORT",
+              "BACKOFFICE_WORKSPACE",
+              "AGENTOS_PORT",
+              "AGENTOS_WORKSPACE"
+            ]
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "http",
+            "url": "http://127.0.0.1:4780/hooks/SessionEnd",
+            "timeout": 3,
+            "headers": {
+              "X-BackOffice-Port": "$BACKOFFICE_PORT",
+              "X-BackOffice-Workspace": "$BACKOFFICE_WORKSPACE",
+              "X-AgentOS-Port": "$AGENTOS_PORT",
+              "X-AgentOS-Workspace": "$AGENTOS_WORKSPACE"
+            },
+            "allowedEnvVars": [
+              "BACKOFFICE_PORT",
+              "BACKOFFICE_WORKSPACE",
+              "AGENTOS_PORT",
+              "AGENTOS_WORKSPACE"
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

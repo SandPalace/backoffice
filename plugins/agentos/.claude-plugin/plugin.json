@@ -1,6 +1,0 @@
-{
-  "name": "agentos",
-  "version": "1.2.0",
-  "description": "AgentOS: one plugin with every agent team for Mexican SMBs (marketing, sales, collections, executive, finance and web development) plus the Assistant (id `coo`), hooks that report each Claude session's status, a local server (SQLite + SSE) and an MCP for tasks, files, leads and Canvas. Teams are a feature of the AgentOS app: each workspace picks which agents it uses.",
-  "author": { "name": "AgentOS" }
-}

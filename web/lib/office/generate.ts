@@ -219,7 +219,7 @@ export const isWallMounted = (p: Placement) => (p.y ?? 0) > 0.3
  * pegadas a lo largo de x; las islas se reparten en filas. Los asientos van en orden: COO, equipo 1, equipo 2… (cada uno
  * con su `team`); sin `teams` se conserva el reparto numérico de siempre.
  */
-export function generateOffice(seatCount: number, companyName = 'AGENTOS', opts: { coo?: boolean; teams?: number[] } = {}): OfficeLayout {
+export function generateOffice(seatCount: number, companyName = 'BACK OFFICE', opts: { coo?: boolean; teams?: number[] } = {}): OfficeLayout {
   const coo = !!opts.coo
   const n = Math.max(MIN_SEATS, Math.floor(seatCount))
   const teamMode = !!opts.teams && opts.teams.length > 0

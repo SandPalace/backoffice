@@ -4,7 +4,7 @@ import Header from '@/components/Header'
 import CanvasBoard, { ARTIFACT_STATUS, useAgentLabel } from '@/components/CanvasBoard'
 import CanvasDetail from '@/components/CanvasDetail'
 import { ROSTERS, ROSTER_AGENTS } from '@/lib/roster'
-import { useAgentOS } from '@/lib/useAgentOS'
+import { useBackOffice } from '@/lib/useBackOffice'
 import type { ArtifactScope, ArtifactStatus } from '@/lib/types'
 
 // Sin «Todo»: el Canvas siempre se ve por alcance (decisión del dueño, 22 oct 2026); abre en Proyecto.
@@ -16,12 +16,12 @@ const SCOPES: { id: ArtifactScope; label: string }[] = [
 const select = 'rounded-full border border-line bg-surface px-3 py-1.5 text-xs font-semibold text-ink outline-none focus:border-blue'
 
 export default function CanvasPage() {
-  const { conn, workspace, workspaceId, teams } = useAgentOS()
+  const { conn, workspace, workspaceId, teams } = useBackOffice()
   const label = useAgentLabel()
   const [scope, setScope] = useState<ArtifactScope>('workspace')
   const [scopeId, setScopeId] = useState('')
   const [status, setStatus] = useState<ArtifactStatus | ''>('')
-  // Link directo de un agente: ?ws=<proyecto>&artifact=<id> abre esa tarjeta (el proyecto lo elige useAgentOS con ?ws).
+  // Link directo de un agente: ?ws=<proyecto>&artifact=<id> abre esa tarjeta (el proyecto lo elige useBackOffice con ?ws).
   const [linked, setLinked] = useState<{ ws: string | null; artifact: string } | null>(null)
   // «Ver su canvas» (oficina) llega con ?agent=<id>.
   useEffect(() => {

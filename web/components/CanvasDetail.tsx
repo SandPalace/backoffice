@@ -6,7 +6,7 @@ import { Preview, type ViewerFile } from './FileViewer'
 import { ARTIFACT_STATUS, StatusChip, ago, useAgentLabel } from './CanvasBoard'
 import { formatSize } from '@/lib/files'
 import { ROSTERS } from '@/lib/roster'
-import { SERVER, getJson, post, useAgentOS } from '@/lib/useAgentOS'
+import { SERVER, getJson, post, useBackOffice } from '@/lib/useBackOffice'
 import type { ArtifactDetail, TaskStatus } from '@/lib/types'
 
 const TASK_STATUS: Record<TaskStatus, string> = { todo: 'Por hacer', doing: 'En curso', blocked: 'Atorada', review: 'En revisión', done: 'Aprobada' }
@@ -15,7 +15,7 @@ const SCOPE_LABEL = { workspace: 'Proyecto', team: 'Equipo', agent: 'Agente' } a
 // Detalle de un artefacto: vista de la versión elegida, versiones, hilo de comentarios y la decisión de la persona.
 // Aprobar el artefacto NO cierra su tarea: la tarea se aprueba aparte (botón propio, igual que en Tareas).
 export default function CanvasDetail({ id, onClose }: { id: string; onClose: () => void }) {
-  const { workspaceId, canvasTick, tasks, teams } = useAgentOS()
+  const { workspaceId, canvasTick, tasks, teams } = useBackOffice()
   const label = useAgentLabel()
   const [a, setA] = useState<ArtifactDetail | null>(null)
   const [err, setErr] = useState<string | null>(null)

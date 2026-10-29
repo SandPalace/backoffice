@@ -3,7 +3,7 @@ import { Fragment, useCallback, useEffect, useRef, useState } from 'react'
 import Modal from './Modal'
 import TextEditor from './TextEditor'
 import { formatSize, outputFileUrl, parseCsv, previewKind, safeLink } from '@/lib/files'
-import { SERVER, apiFetch, getCurrentWorkspace } from '@/lib/useAgentOS'
+import { SERVER, apiFetch, getCurrentWorkspace } from '@/lib/useBackOffice'
 import type { Output, OutputFiles } from '@/lib/types'
 
 export interface ViewerFile {

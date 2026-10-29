@@ -1,3 +1,4 @@
 @echo off
-rem Launcher de AgentOS: corre .\bin\agentos.cmd start desde la carpeta de AgentOS (no se instala en el PATH).
-powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0agentos.ps1" %*
+rem AgentOS ahora se llama Back Office: este comando sigue funcionando por una version y le pasa todo a backoffice.cmd.
+call "%~dp0backoffice.cmd" %*
+exit /b %ERRORLEVEL%

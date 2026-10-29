@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Regenera plugins/agentos/roster.json desde plugins/agentos/teams/*/team.json, agents/*.md y skills/*/SKILL.md.
+// Regenera plugins/backoffice/roster.json desde plugins/backoffice/teams/*/team.json, agents/*.md y skills/*/SKILL.md.
 // Antes valida que cada agente y skill pertenezca a exactamente un equipo y que cada id listado exista (si no, sale con 1).
 // Uso: node scripts/build-roster.mjs   (desde la carpeta del proyecto). `generated_at` sólo cambia si cambia el contenido.
 import { readFileSync, writeFileSync } from "node:fs";
@@ -7,7 +7,7 @@ import {
   rosterContent,
   validateTeams,
   ROSTER_FILE,
-} from "../plugins/agentos/server/src/roster.mjs";
+} from "../plugins/backoffice/server/src/roster.mjs";
 
 const errors = validateTeams();
 if (errors.length) {
@@ -35,5 +35,5 @@ else
   );
 const ts = content.plugins;
 console.log(
-  `${ts.length} teams, ${ts.reduce((n, p) => n + p.agents.length, 0)} agents, ${ts.reduce((n, p) => n + p.skills.length, 0)} skills (1 plugin: agentos)${same ? "" : " -> roster.json written"}`,
+  `${ts.length} teams, ${ts.reduce((n, p) => n + p.agents.length, 0)} agents, ${ts.reduce((n, p) => n + p.skills.length, 0)} skills (1 plugin: backoffice)${same ? "" : " -> roster.json written"}`,
 );

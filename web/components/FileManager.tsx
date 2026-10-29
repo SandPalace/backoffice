@@ -9,7 +9,7 @@ import {
 import type { FileEntry, FolderEntry, SortDir, SortField, TrashItem, Zone } from '@/lib/files'
 import { ApiError, createFolder, listAll, moveKey, restoreFromTrash, restoredSet, trashKey } from '@/lib/fileApi'
 import { collectDrop, fromInput, hasFiles, useUploads, type CollisionChoice } from '@/lib/useUploads'
-import { SERVER, useAgentOS } from '@/lib/useAgentOS'
+import { SERVER, useBackOffice } from '@/lib/useBackOffice'
 
 interface Row {
   id: string
@@ -67,7 +67,7 @@ function FileGlyph({ row, big }: { row: Row; big?: boolean }) {
 }
 
 export default function FileManager({ prefix, navigate }: { prefix: string; navigate: (p: string) => void }) {
-  const { workspaceId: ws, conn, storage, subscribeFiles } = useAgentOS()
+  const { workspaceId: ws, conn, storage, subscribeFiles } = useBackOffice()
   const zone: Zone = zoneOf(prefix)
   const root = zoneRoot(zone)
   const writable = zone === 'files'

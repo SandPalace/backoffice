@@ -65,7 +65,7 @@ export const KIND_3D_COLORS: Record<string, string> = {
   service: '#0891b2',
   human: '#3b82f6',
   agent: '#7c3aed',
-  // equipo de marketing de AgentOS (colores de la marca)
+  // equipo de marketing de Back Office (colores de la marca)
   cmo: '#2D6BFF',
   researcher: '#14B8A6',
   creative: '#FF7A2F',

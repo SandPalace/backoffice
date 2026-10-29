@@ -5,7 +5,7 @@ import Header from '@/components/Header'
 import StorageCard from '@/components/StorageCard'
 import FileManager from '@/components/FileManager'
 import { FILES_ROOT, normalizePrefix } from '@/lib/files'
-import { useAgentOS } from '@/lib/useAgentOS'
+import { useBackOffice } from '@/lib/useBackOffice'
 
 function Manager() {
   const params = useSearchParams()
@@ -18,7 +18,7 @@ function Manager() {
 }
 
 export default function ArchivosPage() {
-  const { conn } = useAgentOS()
+  const { conn } = useBackOffice()
   return (
     <main className="mx-auto flex max-w-[1500px] flex-col gap-4 px-4 py-6 sm:px-6">
       <Header conn={conn} />

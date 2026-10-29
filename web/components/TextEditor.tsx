@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import { MarkdownPage } from './FileViewer'
 import { MAX_EDIT_BYTES, formatSize, previewKind } from '@/lib/files'
 import { readText, writeText } from '@/lib/fileApi'
-import { getCurrentWorkspace } from '@/lib/useAgentOS'
+import { getCurrentWorkspace } from '@/lib/useBackOffice'
 
 /**
  * Inline editor for text-like files. Keeps the text it loaded (`base`); on save it re-reads the file and, if it

@@ -1,6 +1,6 @@
-# AgentOS API (local)
+# Back Office API (local)
 
-AgentOS runs on your computer only (`127.0.0.1`). Two ports:
+Back Office runs on your computer only (`127.0.0.1`). Two ports:
 
 | Port | What                                                                                     | Who uses it                                   |
 | ---- | ---------------------------------------------------------------------------------------- | --------------------------------------------- |
@@ -13,19 +13,21 @@ The browser only ever talks to 4781 (same origin, session cookie). Never call 47
 
 - URL: `http://127.0.0.1:4780/mcp` (Streamable HTTP: `POST` with a JSON-RPC message or batch, JSON response; no SSE stream,
   `GET` answers 405).
-- Auth: header `Authorization: Bearer <key>`. The key is in `data/mcp-key` inside your AgentOS folder (created on the first
-  server start, readable only by your user). `./bin/agentos mcp-key` tells you where it is and how to copy it. Without the
+- Auth: header `Authorization: Bearer <key>`. The key is in `data/mcp-key` inside your Back Office folder (created on the first
+  server start, readable only by your user). `./bin/backoffice mcp-key` tells you where it is and how to copy it. Without the
   key, or with a wrong one, the answer is `401`. Do not paste the key in a chat or commit it.
-- Optional headers: `X-AgentOS-Workspace: <project id>` (default project for calls without `workspace`) and
-  `X-AgentOS-Agent: <agent id>` (who is calling, e.g. `cmo`; used when a tool needs your agent id and you omit it).
-- Tools: the same `agentos_*` tools as the Claude plugin (tasks, files, leads, Canvas, roster, profile...). `tools/list`
-  describes each one.
+- Optional headers: `X-BackOffice-Workspace: <project id>` (default project for calls without `workspace`) and
+  `X-BackOffice-Agent: <agent id>` (who is calling, e.g. `cmo`; used when a tool needs your agent id and you omit it).
+- Tools: the same `backoffice_*` tools as the Claude plugin (tasks, files, leads, Canvas, roster, profile...). `tools/list`
+  describes each one. Back Office was called AgentOS until 2026-10-29: for one release the old tool names
+  (`agentos_*`, not listed) and headers (`X-AgentOS-Workspace`, `X-AgentOS-Agent`) still work, so an existing client config keeps
+  working; rename them when convenient.
 
 The safest way to give the key to a client is an environment variable, so it never sits in a config file. In the terminal
 where you start the client (macOS/Linux):
 
 ```bash
-export AGENTOS_MCP_KEY="$(cat ~/Documents/AgentOS/data/mcp-key)"
+export BACKOFFICE_MCP_KEY="$(cat ~/Documents/AgentOS/data/mcp-key)"
 ```
 
 Then, per client (formats as of 2026-10; check your client's MCP docs if one changed):
@@ -33,9 +35,9 @@ Then, per client (formats as of 2026-10; check your client's MCP docs if one cha
 **Codex** (`~/.codex/config.toml`):
 
 ```toml
-[mcp_servers.agentos]
+[mcp_servers.backoffice]
 url = "http://127.0.0.1:4780/mcp"
-bearer_token_env_var = "AGENTOS_MCP_KEY"
+bearer_token_env_var = "BACKOFFICE_MCP_KEY"
 ```
 
 **OpenCode** (`opencode.json`):
@@ -43,10 +45,10 @@ bearer_token_env_var = "AGENTOS_MCP_KEY"
 ```json
 {
   "mcp": {
-    "agentos": {
+    "backoffice": {
       "type": "remote",
       "url": "http://127.0.0.1:4780/mcp",
-      "headers": { "Authorization": "Bearer {env:AGENTOS_MCP_KEY}" }
+      "headers": { "Authorization": "Bearer {env:BACKOFFICE_MCP_KEY}" }
     }
   }
 }
@@ -57,9 +59,9 @@ bearer_token_env_var = "AGENTOS_MCP_KEY"
 ```json
 {
   "mcpServers": {
-    "agentos": {
+    "backoffice": {
       "url": "http://127.0.0.1:4780/mcp",
-      "headers": { "Authorization": "Bearer ${env:AGENTOS_MCP_KEY}" }
+      "headers": { "Authorization": "Bearer ${env:BACKOFFICE_MCP_KEY}" }
     }
   }
 }
@@ -70,17 +72,17 @@ bearer_token_env_var = "AGENTOS_MCP_KEY"
 Quick test from the terminal:
 
 ```bash
-curl -s http://127.0.0.1:4780/mcp -H "Authorization: Bearer $AGENTOS_MCP_KEY" -H 'content-type: application/json' \
-  -d '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"agentos_overview","arguments":{}}}'
+curl -s http://127.0.0.1:4780/mcp -H "Authorization: Bearer $BACKOFFICE_MCP_KEY" -H 'content-type: application/json' \
+  -d '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"backoffice_overview","arguments":{}}}'
 ```
 
-Claude itself does not need this: Claude Code uses the `agentos` plugin, and Claude Desktop (Chat, Cowork) uses the plugin
-added from Customize → Plugins or, as a fallback, the `dist/agentos.mcpb` extension.
+Claude itself does not need this: Claude Code uses the `backoffice` plugin, and Claude Desktop (Chat, Cowork) uses the plugin
+added from Customize → Plugins or, as a fallback, the `dist/backoffice.mcpb` extension.
 
 ## REST (summary)
 
 JSON in, JSON out. Requests from local processes (curl, hooks, MCP) need no session; requests from a browser need the
-web session (see `docs/AUTH.md`). The project is chosen with `?workspace=<id>` or the header `X-AgentOS-Workspace`
+web session (see `docs/AUTH.md`). The project is chosen with `?workspace=<id>` or the header `X-BackOffice-Workspace`
 (without it: `default`). Errors: `{ "error": "<code>", "message": "<Spanish text>" }`.
 
 | Area           | Endpoints                                                                                                                                                     |
@@ -99,4 +101,4 @@ web session (see `docs/AUTH.md`). The project is chosen with `?workspace=<id>` o
 | Claude hooks   | `POST /hooks/<Event>` (never blocks)                                                                                                                          |
 
 Direct links into the web: `http://localhost:4781/canvas?ws=<project id>&artifact=<artifact id>` opens that project and
-the artifact's card (`agentos_artifact_publish` returns it as `link`).
+the artifact's card (`backoffice_artifact_publish` returns it as `link`).

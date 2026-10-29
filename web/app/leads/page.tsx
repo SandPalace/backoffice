@@ -2,10 +2,10 @@
 import Header from '@/components/Header'
 import LeadsBoard from '@/components/LeadsBoard'
 import WhatsAppPill from '@/components/WhatsAppPill'
-import { useAgentOS } from '@/lib/useAgentOS'
+import { useBackOffice } from '@/lib/useBackOffice'
 
 export default function LeadsPage() {
-  const { leads, conn, workspace, workspaceId } = useAgentOS()
+  const { leads, conn, workspace, workspaceId } = useBackOffice()
   const open = leads.filter((l) => l.stage !== 'won' && l.stage !== 'lost').length
   return (
     <main className="mx-auto flex max-w-[1500px] flex-col gap-4 px-4 py-6 sm:px-6">

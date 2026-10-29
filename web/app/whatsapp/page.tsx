@@ -5,10 +5,10 @@ import Header from '@/components/Header'
 import { Conversation, DraftEditor } from '@/components/WhatsAppPanel'
 import { useWaStatus } from '@/components/WhatsAppPill'
 import type { WaChat, WaDraft } from '@/lib/types'
-import { getJson, put, useAgentOS } from '@/lib/useAgentOS'
+import { getJson, put, useBackOffice } from '@/lib/useBackOffice'
 
 export default function WhatsAppPage() {
-  const { conn, workspaces, waTick } = useAgentOS()
+  const { conn, workspaces, waTick } = useBackOffice()
   const status = useWaStatus()
   const [chats, setChats] = useState<WaChat[]>([])
   const [drafts, setDrafts] = useState<WaDraft[]>([])
@@ -53,7 +53,7 @@ export default function WhatsAppPage() {
       <section className="rounded-sm border border-line bg-surface p-4" aria-label="Cómo conectar">
         <h2 className="mb-2 text-sm font-bold">Cómo conectar</h2>
         <ol className="list-decimal space-y-1 pl-5 text-sm">
-          <li>En tu terminal corre <code className="rounded-sm bg-bg px-1">agentos whatsapp</code>.</li>
+          <li>En tu terminal corre <code className="rounded-sm bg-bg px-1">backoffice whatsapp</code>.</li>
           <li>Escanea el QR con WhatsApp → Dispositivos vinculados.</li>
           <li>Cuando esta página diga «Conectado», los mensajes que te escriban aparecen como leads.</li>
         </ol>

@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { Output, Task, TaskStatus } from '@/lib/types'
-import { post, send, useAgentOS } from '@/lib/useAgentOS'
+import { post, send, useBackOffice } from '@/lib/useBackOffice'
 import { ROSTER_AGENTS } from '@/lib/roster'
 import { Delivery } from './TaskBoard'
 import { OutputViewer } from './FileViewer'
@@ -196,7 +196,7 @@ function Card({ t, projects, onPreview, onApprove, onMove, onMoveProject, onDele
 }
 
 export default function KanbanBoard({ tasks }: { tasks: Task[] }) {
-  const { workspaces, workspaceId } = useAgentOS()
+  const { workspaces, workspaceId } = useBackOffice()
   // Mismo orden que el selector de proyectos: «personal» primero, luego alfabético.
   const projects = useMemo(() => {
     const pinned = (w: { id: string }) => (w.id === 'personal' ? 0 : 1)
@@ -237,7 +237,7 @@ export default function KanbanBoard({ tasks }: { tasks: Task[] }) {
     <section aria-label="Tablero Kanban de tareas">
       {err && <div role="alert" className="mb-3 rounded-sm bg-red-soft px-3 py-2 text-xs text-red">{err}</div>}
       {tasks.length === 0 && (
-        <div role="status" className="card mb-4 p-5 text-sm text-muted">Todavía no hay tareas. Aparecen cuando un agente las crea con el MCP de AgentOS, o crea una con el botón + de una columna.</div>
+        <div role="status" className="card mb-4 p-5 text-sm text-muted">Todavía no hay tareas. Aparecen cuando un agente las crea con el MCP de Back Office, o crea una con el botón + de una columna.</div>
       )}
       <div className="grid auto-cols-[minmax(260px,1fr)] grid-flow-col gap-3 overflow-x-auto pb-2 lg:grid-flow-row lg:grid-cols-5 lg:overflow-visible">
         {COLUMNS.map((c) => {

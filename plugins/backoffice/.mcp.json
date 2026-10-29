@@ -1,0 +1,40 @@
+{
+  "mcpServers": {
+    "backoffice": {
+      "command": "node",
+      "args": [
+        "${CLAUDE_PLUGIN_ROOT}/server/src/mcp.mjs"
+      ]
+    },
+    "playwright": {
+      "command": "node",
+      "args": [
+        "${CLAUDE_PLUGIN_ROOT}/mcp/playwright-guard.mjs"
+      ]
+    },
+    "meta-ads": {
+      "type": "http",
+      "url": "https://mcp.facebook.com/ads"
+    },
+    "meta-browser": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@playwright/mcp@latest",
+        "--user-data-dir",
+        "${BACKOFFICE_HOME}/browser/meta",
+        "--output-dir",
+        "${BACKOFFICE_HOME}/browser/meta-output",
+        "--viewport-size",
+        "1440,900"
+      ]
+    },
+    "meta-ai": {
+      "type": "http",
+      "url": "https://api-meta.agenticlabs.site/mcp/",
+      "headers": {
+        "Authorization": "Bearer ${META_AI_API_KEY:-}"
+      }
+    }
+  }
+}

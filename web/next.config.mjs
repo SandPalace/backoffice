@@ -1,8 +1,10 @@
 // Same origin: the page only talks to its own port (4781). Next proxies the API, the live stream (SSE, under /api) and the
 // hooks to the local server on 127.0.0.1, so no browser (Cowork's embedded one included) has to call another port.
 // The server keeps 4780 for MCP clients and Claude hooks. Rewrites are fixed at `next build`: build with the same
-// AGENTOS_PORT (or NEXT_PUBLIC_AGENTOS_PORT, what bin/agentos passes) the server listens on.
-const port = process.env.AGENTOS_PORT || process.env.NEXT_PUBLIC_AGENTOS_PORT || '4780'
+// BACKOFFICE_PORT (or NEXT_PUBLIC_BACKOFFICE_PORT, what bin/backoffice passes) the server listens on. The AGENTOS_* names
+// are rename compat for one release: a launcher from before the rename builds with NEXT_PUBLIC_AGENTOS_PORT.
+const e = process.env
+const port = e.BACKOFFICE_PORT || e.NEXT_PUBLIC_BACKOFFICE_PORT || e.AGENTOS_PORT || e.NEXT_PUBLIC_AGENTOS_PORT || '4780'
 const target = `http://127.0.0.1:${port}`
 
 /** @type {import('next').NextConfig} */

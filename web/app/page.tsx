@@ -9,11 +9,11 @@ import ProjectHome from "@/components/ProjectHome";
 import { buildTeamSeats, type Seat } from "@/lib/team";
 import { COO_AGENT, findAgent } from "@/lib/roster";
 import { AVATAR_PALETTES } from "@/components/office/officeLayout";
-import { getJson, post, useAgentOS } from "@/lib/useAgentOS";
+import { getJson, post, useBackOffice } from "@/lib/useBackOffice";
 import { newConversationLink, resumeCommand, sessionLink } from "@/lib/claude";
 import { STATUS_LABEL } from "@/lib/team";
 import { useOfficeView } from "@/lib/officeViewContext";
-import type { Conn } from "@/lib/useAgentOS";
+import type { Conn } from "@/lib/useBackOffice";
 
 /** Contadores del inicio (los mismos en la vista 2D y en la oficina 3D). */
 function StatusPills({
@@ -54,7 +54,7 @@ function StatusPills({
 
 export default function Page() {
   const { sessions, tasks, teams, coo, conn, workspace, workspaceId } =
-    useAgentOS();
+    useBackOffice();
   // La oficina 3D es opcional (interruptor «Vista oficina» del navbar); por defecto el inicio es el canvas del proyecto.
   const { officeView } = useOfficeView();
   const [pad, setPad] = useState(0);
@@ -236,10 +236,10 @@ export default function Page() {
 
       {conn === "down" && (
         <div className="card border-amber p-4 text-sm">
-          No encuentro el servidor de AgentOS. Se enciende solo al abrir una
+          No encuentro el servidor de Back Office. Se enciende solo al abrir una
           sesión de Claude con el plugin instalado, o corre{" "}
           <code className="font-mono text-xs">
-            node plugins/agentos/server/src/server.mjs
+            node plugins/backoffice/server/src/server.mjs
           </code>
           .
         </div>

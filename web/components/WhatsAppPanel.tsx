@@ -1,7 +1,7 @@
 'use client'
 import { useCallback, useEffect, useState } from 'react'
 import type { WaChat, WaDraft, WaMessage } from '@/lib/types'
-import { getJson, post, send, useAgentOS } from '@/lib/useAgentOS'
+import { getJson, post, send, useBackOffice } from '@/lib/useBackOffice'
 
 const hhmm = (ts: number) => new Date(ts).toLocaleString('es-MX', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
 const field = 'w-full rounded-sm border border-line bg-bg px-3 py-2 text-sm outline-none focus:border-blue'
@@ -46,7 +46,7 @@ export function DraftEditor({ draft, onChange }: { draft: WaDraft; onChange?: ()
 
 /** Conversation bubbles for a chat plus its pending drafts. */
 export function Conversation({ chatId }: { chatId: string }) {
-  const { waTick } = useAgentOS()
+  const { waTick } = useBackOffice()
   const [msgs, setMsgs] = useState<WaMessage[]>([])
   const [drafts, setDrafts] = useState<WaDraft[]>([])
   const [error, setError] = useState<string | null>(null)
@@ -76,7 +76,7 @@ export function Conversation({ chatId }: { chatId: string }) {
 
 /** «WhatsApp» section of the lead modal: only when the lead has a chat. */
 export default function WhatsAppPanel({ leadId }: { leadId: string }) {
-  const { waTick } = useAgentOS()
+  const { waTick } = useBackOffice()
   const [chat, setChat] = useState<WaChat | null | undefined>(undefined)
   useEffect(() => {
     let off = false

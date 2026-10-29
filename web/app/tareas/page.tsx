@@ -1,10 +1,10 @@
 'use client'
 import Header from '@/components/Header'
 import KanbanBoard from '@/components/KanbanBoard'
-import { useAgentOS } from '@/lib/useAgentOS'
+import { useBackOffice } from '@/lib/useBackOffice'
 
 export default function TareasPage() {
-  const { tasks, conn, workspace, workspaceId } = useAgentOS()
+  const { tasks, conn, workspace, workspaceId } = useBackOffice()
   const open = tasks.filter((t) => t.status !== 'done').length
   return (
     <main className="mx-auto flex max-w-[1500px] flex-col gap-4 px-4 py-6 sm:px-6">

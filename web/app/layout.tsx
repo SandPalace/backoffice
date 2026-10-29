@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import { JetBrains_Mono, Poppins, Space_Grotesk } from 'next/font/google'
 import './globals.css'
-import AgentOSProvider from '@/components/AgentOSProvider'
+import BackOfficeProvider from '@/components/BackOfficeProvider'
 import AuthGate from '@/components/AuthGate'
 import { ThemeProvider, THEME_INIT_SCRIPT } from '@/lib/theme'
 import { OfficeViewProvider } from '@/lib/officeViewContext'
@@ -11,7 +11,7 @@ const grotesk = Space_Grotesk({ subsets: ['latin'], weight: ['500', '600', '700'
 const jetbrains = JetBrains_Mono({ subsets: ['latin'], weight: ['400', '500', '600', '700'], variable: '--font-jetbrains' })
 
 export const metadata: Metadata = {
-  title: 'AgentOS · Oficina',
+  title: 'Back Office · Oficina',
   description: 'Tu equipo de agentes de Claude, trabajando en vivo.',
 }
 
@@ -22,7 +22,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         <ThemeProvider>
           <OfficeViewProvider>
-            <AuthGate><AgentOSProvider>{children}</AgentOSProvider></AuthGate>
+            <AuthGate><BackOfficeProvider>{children}</BackOfficeProvider></AuthGate>
           </OfficeViewProvider>
         </ThemeProvider>
       </body>

@@ -15,7 +15,7 @@ Verified 2026-10-15 by reading the published packages (`@open-wa/wa-automate@5.6
    `--ready-webhook`, `--tunnel`, `--stats`, Chatwoot/Twilio/BotPress flags are likewise unwired.
    The old v4 line (last release 4.76.0, 2025-02) has working `-w` but predates 20 months of WhatsApp Web changes; not used.
 3. **Our workaround:** `scripts/whatsapp-bridge.mjs` (zero deps, started by the launcher) subscribes to open-wa's SSE
-   stream and re-posts each message to AgentOS as an EASY-API-style webhook (shape below).
+   stream and re-posts each message to Back Office as an EASY-API-style webhook (shape below).
 4. Version is pinned (`WA_VERSION="5.6.2"` in both launchers and `scripts/whatsapp-dev.sh`) because the CLI changes
    between minors. Re-verify before bumping.
 
@@ -25,7 +25,7 @@ Verified 2026-10-15 by reading the published packages (`@open-wa/wa-automate@5.6
 |---|---|---|
 | Port | `--port`, `-p` (env `WA_PORT`) | default 8080 |
 | Bind host | `--host`, `-h` (env `WA_HOST`) | default `localhost`; we pass `127.0.0.1` |
-| Session id | `--session-id` (env `WA_SESSION_ID`) | we use `agentos` |
+| Session id | `--session-id` (env `WA_SESSION_ID`) | we use `backoffice` |
 | Session data dir | env `WA_SESSION_DATA_PATH` (config `sessionDataPath`) | no CLI flag; "directory or explicit .data.json filename; defaults to `{sessionId}.data.json` in the working directory". We set it to `~/.agentos/whatsapp` AND run with that cwd (open-wa also writes `.open-wa/` and a patches cache in cwd). Verified via `resolveConfig`. |
 | API key | `--api-key`, `--key`, `-k` (env `WA_API_KEY`) | min 8 chars. The launcher uses the env var so the key does not show in `ps`. |
 | Webhook | `--webhook`, `-w` | parsed, **not wired** (see above) |
@@ -33,7 +33,7 @@ Verified 2026-10-15 by reading the published packages (`@open-wa/wa-automate@5.6
 | QR in terminal | default (`ezqr` on, QR printed in the foreground; refreshes about every 60 s) | `--no-ezqr` disables the `/qr` endpoint. Headless Chrome by default (`--headful` to show it). |
 | License | `--license-key`, `-l` | NOT needed for what we use: schema marks `sendText`, `getConnectionState` and the `onMessage` event `license: "none"`. Per the `sendText` description, **starting a chat with a new number** needs a restricted/premium license. We only reply to people who wrote in. |
 | Browser | needs installed Chrome/Chromium (found automatically; else interactive prompt to download; `--use-chrome`, `--use-chromium`, `--non-interactive`) | |
-| Node | no `engines` field in the packages; AgentOS already requires Node 22.13+/24 | bridge uses global `fetch` |
+| Node | no `engines` field in the packages; Back Office already requires Node 22.13+/24 | bridge uses global `fetch` |
 
 ## HTTP API (Easy API) and auth
 
@@ -51,18 +51,18 @@ Verified 2026-10-15 by reading the published packages (`@open-wa/wa-automate@5.6
 ## Events
 
 - `GET /api/events?topics=onMessage[,onAck,...]` (Server-Sent Events, `X-API-Key` header). Frame:
-  `id: <n>\nevent: onMessage\ndata: {"id","event":"onMessage","payload":<Message>,"ts":<ms>,"sessionId":"agentos"}\n\n`;
+  `id: <n>\nevent: onMessage\ndata: {"id","event":"onMessage","payload":<Message>,"ts":<ms>,"sessionId":"backoffice"}\n\n`;
   keepalive comment every 20 s. No replay: events while disconnected are lost (the bridge reconnects every 3 s).
 - Event names include `onMessage` (incoming only, not own messages), `onAnyMessage`, `onAck`, `onStateChanged`, `onLogout`, `onReaction`, `onIncomingCall`, ...
 - `Message` payload fields (zod `MessageSchema`): `id, body, type, t, timestamp, notifyName, from, to, self, ack, isGroupMsg, isMedia, isNotification, fromMe, chat, chatId, author, sender, senderId, quotedMsg, mentionedJidList, caption, ...`.
-  Chat ids look like `5218112345678@c.us` (person) / `...@g.us` (group; AgentOS ignores groups).
+  Chat ids look like `5218112345678@c.us` (person) / `...@g.us` (group; Back Office ignores groups).
 
-## What AgentOS receives (bridge output = EASY API webhook shape)
+## What Back Office receives (bridge output = EASY API webhook shape)
 
-`POST http://127.0.0.1:4780/api/whatsapp/webhook?secret=<AGENTOS_WA_WEBHOOK_SECRET>`, `content-type: application/json`:
+`POST http://127.0.0.1:4780/api/whatsapp/webhook?secret=<BACKOFFICE_WA_WEBHOOK_SECRET>`, `content-type: application/json`:
 
 ```json
-{ "ws_id": "agentos", "event": "onMessage", "data": { "id": "...", "body": "hola", "chatId": "5218112345678@c.us", "from": "5218112345678@c.us", "fromMe": false, "isGroupMsg": false, "notifyName": "Laura", "t": 1760000000, "sender": {"pushname": "Laura"} }, "ts": 1760000000000 }
+{ "ws_id": "backoffice", "event": "onMessage", "data": { "id": "...", "body": "hola", "chatId": "5218112345678@c.us", "from": "5218112345678@c.us", "fromMe": false, "isGroupMsg": false, "notifyName": "Laura", "t": 1760000000, "sender": {"pushname": "Laura"} }, "ts": 1760000000000 }
 ```
 
 4xx from the server = dropped (not retried); network errors retried 4 times (1, 2, 4, 8 s).
@@ -71,9 +71,9 @@ Verified 2026-10-15 by reading the published packages (`@open-wa/wa-automate@5.6
 
 ## Env (all in `~/.agentos/.env`, mode 600)
 
-`AGENTOS_WA_URL` (default `http://127.0.0.1:8002`), `AGENTOS_WA_API_KEY`, `AGENTOS_WA_WEBHOOK_SECRET` (both random 48 hex chars generated by
-`agentos whatsapp` on first run, existing keys untouched). Acceptance of the risk notice: `~/.agentos/whatsapp-accepted`.
-Session + browser state: `~/.agentos/whatsapp/` (`agentos whatsapp --reset` deletes it).
+`BACKOFFICE_WA_URL` (default `http://127.0.0.1:8002`), `BACKOFFICE_WA_API_KEY`, `BACKOFFICE_WA_WEBHOOK_SECRET` (both random 48 hex chars generated by
+`backoffice whatsapp` on first run, existing keys untouched). Acceptance of the risk notice: `~/.agentos/whatsapp-accepted`.
+Session + browser state: `~/.agentos/whatsapp/` (`backoffice whatsapp --reset` deletes it).
 
 ## Not verified (needs a real login, deliberately not done)
 

@@ -2,7 +2,7 @@
 'use client'
 
 /**
- * Oficina 3D de AgentOS. Usa la oficina horneada (Office.glb), los avatares voxel y la navegación
+ * Oficina 3D de Back Office. Usa la oficina horneada (Office.glb), los avatares voxel y la navegación
  * de la oficina de un proyecto interno anterior. Cada personaje es un agente del equipo (o una sesión de Claude):
  *   working → escribiendo en su escritorio       waiting → "mantenimiento": espera a una persona
  *   idle    → sentado, respirando                error   → pulso rojo
@@ -516,21 +516,21 @@ export default function OfficeScene({ seats, teams, tasks, selectedTask, onSelec
     try {
       const ok = (v: string | null): v is OfficeView => v === 'persp' || v === 'iso' || v === 'top'
       const q = new URLSearchParams(window.location.search).get('view')
-      const saved = window.localStorage.getItem('agentos.officeView2')
+      const saved = window.localStorage.getItem('backoffice.officeView2')
       setView(ok(q) ? q : ok(saved) ? saved : 'persp')
     } catch {}
   }, [])
   const chooseView = (v: OfficeView) => {
     setView(v)
-    try { window.localStorage.setItem('agentos.officeView2', v) } catch {}
+    try { window.localStorage.setItem('backoffice.officeView2', v) } catch {}
   }
   // Cámara: sigue a la persona por defecto (se recuerda); «Vista completa» encuadra toda la oficina.
   const [follow, setFollow] = useState(true)
-  useEffect(() => { try { if (window.localStorage.getItem('agentos.officeFollow') === '0') setFollow(false) } catch {} }, [])
+  useEffect(() => { try { if (window.localStorage.getItem('backoffice.officeFollow') === '0') setFollow(false) } catch {} }, [])
   const toggleFollow = () => {
     const f = !follow
     setFollow(f)
-    try { window.localStorage.setItem('agentos.officeFollow', f ? '1' : '0') } catch {}
+    try { window.localStorage.setItem('backoffice.officeFollow', f ? '1' : '0') } catch {}
   }
   const player = useRef<any>(null)
   const dark = useTheme().theme === 'dark'

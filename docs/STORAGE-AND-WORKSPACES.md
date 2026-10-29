@@ -1,6 +1,6 @@
 # Storage and workspaces
 
-AgentOS has two related features: **workspaces** (several accounts/projects in one install) and **file storage**,
+Back Office has two related features: **workspaces** (several accounts/projects in one install) and **file storage**,
 a web-native file layer: the person and the agents work with files by *key* (`files/marketing/acme/facts.md`),
 never by disk path. Storage is a single **built-in local store**: plain files in a folder on this computer. There is
 nothing to install (no Docker, no database server, no cloud account) and the server stays zero-dependency.
@@ -8,14 +8,14 @@ nothing to install (no Docker, no database server, no cloud account) and the ser
 ## Architecture
 
 ```
-Claude session --hooks/MCP--> AgentOS server :4780 --SQLite (~/.agentos/agentos.db)
+Claude session --hooks/MCP--> Back Office server :4780 --SQLite (<project>/data/backoffice.db)
                                    |-- blobstore.mjs --> local store: ~/.agentos/store/<bucket>/<key>
 web :4781 --/api/*, /api/files/* (SSE with ?workspace=)--> server           (web never touches the disk directly)
 ```
 
 | Piece | Port | Notes |
 |---|---|---|
-| AgentOS server | 4780 | binds `127.0.0.1` only; `AGENTOS_PORT` |
+| Back Office server | 4780 | binds `127.0.0.1` only; `BACKOFFICE_PORT` |
 | Web | 4781 | |
 
 Source files: `blobstore.mjs` (key validation + local store), `files.mjs` (virtual namespace, list/move/trash/zip plan,
@@ -24,7 +24,7 @@ disk-path deliveries into the store), `db.mjs` (migrations 5-9), `store.mjs`, `s
 
 ## Storage
 
-On disk: `<AGENTOS_HOME or ~/.agentos>/store/<bucket>/<key>`, one bucket (folder) per workspace, `ws-<workspace id>`.
+On disk: `<BACKOFFICE_HOME or ~/.agentos>/store/<bucket>/<key>`, one bucket (folder) per workspace, `ws-<workspace id>`.
 
 | | |
 |---|---|
@@ -32,7 +32,7 @@ On disk: `<AGENTOS_HOME or ~/.agentos>/store/<bucket>/<key>`, one bucket (folder
 | Metadata | sidecar `store/.meta/<bucket>/<key>.json` (content type, size, sha256, mtime); a stale sidecar is ignored |
 | Writes | temp file in `store/.tmp` + `rename` (atomic), files created `0600` |
 | Safety | every key segment is checked with `lstat`: symlinks are refused (403) and never listed |
-| Backup | copy the `store/` folder (and `agentos.db` for tasks/teams). Restore = put it back |
+| Backup | copy the `store/` folder (and `backoffice.db` for tasks/teams). Restore = put it back |
 
 `GET /api/storage/status` -> `{ backend: 'local', root, usage: {files, bytes}, import, limits }`. `usage` counts the files in
 all workspaces (trash and folder markers excluded); `root` is the store folder (what to back up); `import` is the state of the
@@ -43,16 +43,16 @@ last import-disk job; `limits` are `max_file_bytes`, `max_read_bytes`, `max_list
 A workspace = an account/project. Teams (and their `active` flag), tasks, deliveries, sessions, events, the COO
 config and files are scoped to one. `default` (name "Default") holds everything created before
 workspaces existed. Layout (`paths.mjs`: `workspaceDir()` / `defaultWorkspaceRoot()`): new installs and migrated ones use `<project>/workspaces/default` and `<project>/workspaces/<id>/`
-(`AGENTOS_ROOT` = `<project>/workspaces`); a legacy install not yet migrated (`AGENTOS_ROOT` = `~/AgentOS`) keeps `default` = `~/AgentOS` and others in `~/AgentOS/workspaces/<id>/`.
+(`BACKOFFICE_ROOT` = `<project>/workspaces`); a legacy install not yet migrated (`BACKOFFICE_ROOT` = `~/AgentOS`) keeps `default` = `~/AgentOS` and others in `~/AgentOS/workspaces/<id>/`.
 
 **Session to workspace** (hooks and MCP), first match wins:
-1. `AGENTOS_WORKSPACE` (hook payload `env.AGENTOS_WORKSPACE` / `agentos_workspace` / `X-AgentOS-Workspace` header, or the MCP process env), if that workspace exists.
+1. `BACKOFFICE_WORKSPACE` (hook payload `env.BACKOFFICE_WORKSPACE` / `backoffice_workspace` / `X-BackOffice-Workspace` header, or the MCP process env), if that workspace exists.
 2. The workspace with the **longest `root` that is a path prefix of the cwd** (so `<project>/workspaces/acme/x` is `acme`, not `default`). Matching is by path segment (`acme` does not match `acme-otro`).
 3. `default`.
 
-The MCP server sends `X-AgentOS-Workspace` (if `AGENTOS_WORKSPACE` is set) or `X-AgentOS-Cwd` (its cwd) on every call,
+The MCP server sends `X-BackOffice-Workspace` (if `BACKOFFICE_WORKSPACE` is set) or `X-BackOffice-Cwd` (its cwd) on every call,
 and the server then treats the request as *strict*: tasks/teams of other workspaces do not exist for it (404).
-`agentos_overview`, `agentos_team_context` and the COO/team context text mention the workspace.
+`backoffice_overview`, `backoffice_team_context` and the COO/team context text mention the workspace.
 
 **COO config** is per workspace (`workspace_agents`). A workspace without its own row uses blank values
 (it does **not** inherit another account's COO context, to avoid leaking one client's text into another).
@@ -64,11 +64,11 @@ deleted. Re-creating an archived id revives it.
 
 | Variable | Meaning |
 |---|---|
-| `AGENTOS_PORT` | server port (default 4780) |
-| `AGENTOS_DB` | SQLite path (default `<home>/agentos.db`) |
-| `AGENTOS_HOME` | folder for the database, the log and the local store at `<home>/store` (default `~/.agentos`) |
-| `AGENTOS_ROOT` | parent folder of all workspace folders (default `<project>/workspaces`; legacy `~/AgentOS` if not migrated); also an allowed root for disk fallback serving |
-| `AGENTOS_WORKSPACE` | force the workspace of a session / MCP process |
+| `BACKOFFICE_PORT` | server port (default 4780) |
+| `BACKOFFICE_DB` | SQLite path (default `<home>/backoffice.db`) |
+| `BACKOFFICE_HOME` | folder for the database, the log and the local store at `<home>/store` (default `~/.agentos`) |
+| `BACKOFFICE_ROOT` | parent folder of all workspace folders (default `<project>/workspaces`; legacy `~/AgentOS` if not migrated); also an allowed root for disk fallback serving |
+| `BACKOFFICE_WORKSPACE` | force the workspace of a session / MCP process |
 
 ## Key layout
 
@@ -101,8 +101,8 @@ copied inside the store (a folder becomes a folder output with `files.files[]`).
 
 ## API
 
-Workspace selection on every endpoint under `/api/`: `?workspace=<id>` or header `X-AgentOS-Workspace`
-(also `X-AgentOS-Cwd` for MCP). None = `default`. Unknown id = 404 `workspace_not_found`. For by-id routes (tasks,
+Workspace selection on every endpoint under `/api/`: `?workspace=<id>` or header `X-BackOffice-Workspace`
+(also `X-BackOffice-Cwd` for MCP). None = `default`. Unknown id = 404 `workspace_not_found`. For by-id routes (tasks,
 teams, outputs) an explicit workspace that does not own the object gives 404; without it the lookup is lenient.
 
 | Route | Notes |
@@ -128,28 +128,28 @@ teams, outputs) an explicit workspace that does not own the object gives 404; wi
 | `GET /api/stream?workspace=` | SSE; snapshot `{workspace, workspaces, sessions, tasks, teams, system}`; events: `session`, `task`, `teams`, `system`, `workspaces` (global), `files` (workspace-scoped: `{workspace_id, op:'put'\|'delete'\|'move'\|'folder'\|'import', key?, from?, to?, count}`) |
 | `POST /api/tasks/:id/outputs` | `{files:[...]}` (virtual) and/or `{path, kind, title}` (disk). See below |
 
-Agent-facing routes (what the MCP tools call; workspace from `X-AgentOS-Workspace` / `X-AgentOS-Cwd` like every other route):
+Agent-facing routes (what the MCP tools call; workspace from `X-BackOffice-Workspace` / `X-BackOffice-Cwd` like every other route):
 `POST /api/files/write`, `GET /api/files/read?path=&max_bytes=`, `GET /api/files/list?prefix=&recursive=1&cursor=`, `POST /api/files/delete`, `POST /api/files/move`.
 Writes and reads are refused with a clear error above the limits. All mutating routes reject a foreign `Origin` header (403).
 
 Served files carry `X-Content-Type-Options: nosniff`; HTML/SVG also get `Content-Security-Policy: sandbox allow-scripts`.
-The disk fallback resolves `realpath` and requires it to sit inside a workspace root, `~/AgentOS` or `AGENTOS_ROOT`
+The disk fallback resolves `realpath` and requires it to sit inside a workspace root, `~/AgentOS` or `BACKOFFICE_ROOT`
 (symlink escapes and `..` rejected). Range requests are not supported.
 
 ## MCP tools
 
-All scoped to the session's workspace (`AGENTOS_WORKSPACE`, else the cwd rule). Paths are workspace-relative.
+All scoped to the session's workspace (`BACKOFFICE_WORKSPACE`, else the cwd rule). Paths are workspace-relative.
 
 | Tool | Arguments | Result |
 |---|---|---|
-| `agentos_file_write` | `path`, `content` (utf-8) or `content_base64`, `content_type?`, `overwrite?` (default true) | `{path,size,sha256,content_type,created,overwritten}` |
-| `agentos_file_read` | `path`, `max_bytes?` | text: `{path,size,content_type,encoding:'utf-8',content,truncated}`; binary: `encoding:'base64', content_base64`. Over 5 MB: error (unless `max_bytes` asks for the beginning of a text file) |
-| `agentos_file_list` | `prefix?`, `recursive?`, `cursor?` | `{prefix, folders:[{path,name}], files:[{path,name,size,mtime,content_type}], next_cursor, truncated}`; trash excluded |
-| `agentos_file_delete` | `path` (file or folder) | `{path,kind,trashed,trash_prefix}`; soft delete |
-| `agentos_file_move` | `from`, `to` | `{from,to,kind,moved}`; error if `to` exists |
-| `agentos_task_deliver` | `id`, `files?: [{path} \| {name, content\|content_base64, content_type?} (+ title?, kind?)]`, `path?`, `kind?`, `title?` | the task with outputs. `path` (disk) is for code projects that must run on disk |
+| `backoffice_file_write` | `path`, `content` (utf-8) or `content_base64`, `content_type?`, `overwrite?` (default true) | `{path,size,sha256,content_type,created,overwritten}` |
+| `backoffice_file_read` | `path`, `max_bytes?` | text: `{path,size,content_type,encoding:'utf-8',content,truncated}`; binary: `encoding:'base64', content_base64`. Over 5 MB: error (unless `max_bytes` asks for the beginning of a text file) |
+| `backoffice_file_list` | `prefix?`, `recursive?`, `cursor?` | `{prefix, folders:[{path,name}], files:[{path,name,size,mtime,content_type}], next_cursor, truncated}`; trash excluded |
+| `backoffice_file_delete` | `path` (file or folder) | `{path,kind,trashed,trash_prefix}`; soft delete |
+| `backoffice_file_move` | `from`, `to` | `{from,to,kind,moved}`; error if `to` exists |
+| `backoffice_task_deliver` | `id`, `files?: [{path} \| {name, content\|content_base64, content_type?} (+ title?, kind?)]`, `path?`, `kind?`, `title?` | the task with outputs. `path` (disk) is for code projects that must run on disk |
 
-The SessionStart/SubagentStart context, `agentos_team_context` and `agentos_overview.files_hint` carry a short note telling agents to use these
+The SessionStart/SubagentStart context, `backoffice_team_context` and `backoffice_overview.files_hint` carry a short note telling agents to use these
 tools, never ask for disk paths, and deliver with `files`.
 
 ## Importing existing disk content
@@ -164,7 +164,7 @@ not exist yet). In the web it is the "Importar carpeta del equipo" button of the
 | Limit | Value |
 |---|---|
 | One file (write, upload, delivery, disk copy) | 50 MB |
-| `agentos_file_read` | 5 MB |
+| `backoffice_file_read` | 5 MB |
 | Listing page | 5,000 entries (scan cap 20,000 objects) |
 | Folder delete / move / ZIP | 5,000 files; ZIP also 1 GiB (no ZIP64) |
 | Files per delivery call | 100 |
@@ -176,7 +176,7 @@ Configurable only in code (`createApp({limits})`, see `DEFAULT_LIMITS` in `files
 ## Migration (database)
 
 Migrations 5-9 (`db.mjs`) are idempotent and self-contained (columns are added only if missing). They create
-`workspaces` (seed `default`, root `~/AgentOS` or `AGENTOS_ROOT`), add `workspace_id TEXT NOT NULL DEFAULT 'default'`
+`workspaces` (seed `default`, root `~/AgentOS` or `BACKOFFICE_ROOT`), add `workspace_id TEXT NOT NULL DEFAULT 'default'`
 to `sessions, tasks, outputs, teams, events` (so every existing row lands in `default`), create `workspace_agents`
 and copy `system_agents` into it for `default`, and add the storage columns to `outputs` (`bucket`, `uploaded_at` and
 `storage_error` are legacy and no longer meaningful); migration 9 adds the `settings` key/value table (one-time import flags).
@@ -192,7 +192,7 @@ appended at the end.
 
 ## Tests
 
-`cd plugins/agentos/server && node --test test/*.test.mjs`. `test/files.test.mjs` covers the blob store (put/get/list/copy/delete,
+`cd plugins/backoffice/server && node --test test/*.test.mjs`. `test/files.test.mjs` covers the blob store (put/get/list/copy/delete,
 key validation, symlinks), the web API (upload/list/move/trash/restore/zip/import/SSE), the MCP file tools (workspace isolation, legacy
 paths, limits) and virtual deliveries; the ZIP is checked with python3 `zipfile` and `unzip -t` when available.
 `test/workspaces.test.mjs` covers workspace isolation, deliveries copied into the store and file security.

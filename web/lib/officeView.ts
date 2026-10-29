@@ -1,5 +1,5 @@
 // Preferencia «Vista oficina»: la oficina 3D es una vista opcional; por defecto la app usa la interfaz 2D.
-export const OFFICE_VIEW_KEY = 'agentos.officeView'
+export const OFFICE_VIEW_KEY = 'backoffice.officeView'
 
 /** Lo guardado en el navegador → ¿vista oficina encendida? Sólo 'on' la enciende; nada guardado (o basura) = apagada. */
 export const parseOfficeView = (stored: string | null | undefined): boolean => stored === 'on'

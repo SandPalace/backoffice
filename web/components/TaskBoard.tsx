@@ -2,7 +2,7 @@
 import Link from 'next/link'
 import { useEffect, useRef, useState } from 'react'
 import type { Output, Task, TaskStatus } from '@/lib/types'
-import { SERVER, getCurrentWorkspace, post } from '@/lib/useAgentOS'
+import { SERVER, getCurrentWorkspace, post } from '@/lib/useBackOffice'
 import { archivosHref, deliveryFolder, formatSize, outputFileUrl, previewKind, safeLink, storageBadge } from '@/lib/files'
 import { OutputViewer } from './FileViewer'
 
@@ -84,7 +84,7 @@ export default function TaskBoard({ tasks, selectedId }: { tasks: Task[]; select
     <section className="card p-4">
       <div className="label mb-3">Tareas</div>
       {err && <div className="mb-3 rounded-sm bg-red-soft px-3 py-2 text-xs text-red">{err}</div>}
-      {tasks.length === 0 && <p className="text-sm text-muted">Todavía no hay tareas. Aparecen cuando un agente las crea con el MCP de AgentOS.</p>}
+      {tasks.length === 0 && <p className="text-sm text-muted">Todavía no hay tareas. Aparecen cuando un agente las crea con el MCP de Back Office.</p>}
       <div className="flex flex-col gap-5">
         {ORDER.map((st) => {
           const list = tasks.filter((t) => t.status === st)

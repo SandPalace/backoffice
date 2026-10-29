@@ -4,7 +4,7 @@ import Link from 'next/link'
 import CanvasDetail from './CanvasDetail'
 import { Preview, type ViewerFile } from './FileViewer'
 import { ago, useAgentLabel } from './CanvasBoard'
-import { SERVER, getJson, useAgentOS } from '@/lib/useAgentOS'
+import { SERVER, getJson, useBackOffice } from '@/lib/useBackOffice'
 import type { HomeArtifact } from '@/lib/types'
 
 export const HOME_PROMPT = 'arma el inicio de este proyecto'
@@ -12,7 +12,7 @@ export const HOME_PROMPT = 'arma el inicio de este proyecto'
 // Inicio del proyecto: el artefacto «home» del Canvas que arma y actualiza Assistant (una página viva, sin revisión).
 // Sin home todavía: un lienzo en blanco con la frase para pedírselo. Se refresca con los eventos `canvas` del SSE.
 export default function ProjectHome() {
-  const { workspaceId, workspace, canvasTick, conn } = useAgentOS()
+  const { workspaceId, workspace, canvasTick, conn } = useBackOffice()
   const label = useAgentLabel()
   const [home, setHome] = useState<HomeArtifact | null | undefined>(undefined)
   const [err, setErr] = useState<string | null>(null)

@@ -1,6 +1,6 @@
 import type { Config } from 'tailwindcss'
 
-// Design System de AgentOS: Spectrum, Poppins + Space Grotesk, tarjetas blancas con borde, radio 2px.
+// Design System de Back Office: Spectrum, Poppins + Space Grotesk, tarjetas blancas con borde, radio 2px.
 export default {
   darkMode: ['selector', '[data-theme="dark"]'],
   content: ['./app/**/*.{ts,tsx}', './components/**/*.{ts,tsx}'],

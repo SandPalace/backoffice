@@ -1,11 +1,11 @@
 'use client'
 import { useEffect, useState } from 'react'
-import { useAgentOS } from '@/lib/useAgentOS'
+import { useBackOffice } from '@/lib/useBackOffice'
 import { formatSize } from '@/lib/files'
 import { ApiError, importDisk } from '@/lib/fileApi'
 
 export default function StorageCard() {
-  const { storage, storageError, refreshStorage, workspaceId } = useAgentOS()
+  const { storage, storageError, refreshStorage, workspaceId } = useBackOffice()
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState<string | null>(null)
 
@@ -39,7 +39,7 @@ export default function StorageCard() {
         </div>
 
         {!storage && !storageError && <p className="text-xs text-muted" role="status">Consultando el almacenamiento…</p>}
-        {!storage && storageError && <p className="text-xs text-red" role="alert">No pude consultar el almacenamiento: {storageError}. ¿Está encendido el servidor de AgentOS?</p>}
+        {!storage && storageError && <p className="text-xs text-red" role="alert">No pude consultar el almacenamiento: {storageError}. ¿Está encendido el servidor de Back Office?</p>}
         {storage && (
           <div className="flex flex-col gap-0.5">
             <dl className="flex flex-wrap gap-x-6 gap-y-1 text-xs">
