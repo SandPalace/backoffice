@@ -5,7 +5,7 @@ Anota en cada punto OK / falla + el mensaje exacto.
 
 ## Antes
 - [ ] `node -v` >= 22.13 (ideal 24), `git --version`, `claude --version` existen.
-- [ ] Clonar: `cd $HOME\Documents; git clone https://github.com/SandPalace/agentos.git AgentOS; cd AgentOS`
+- [ ] Clonar: `cd $HOME\Documents; git clone https://github.com/SandPalace/backoffice.git AgentOS; cd AgentOS`
 
 ## Instalador (`powershell -ExecutionPolicy Bypass -File .\install.ps1`)
 - [ ] Los acentos y mensajes en español se ven bien (sin caracteres raros): confirma que el BOM funciona en 5.1.

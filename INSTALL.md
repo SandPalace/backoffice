@@ -15,7 +15,7 @@ Esta guía es para macOS (Linux es igual). Para Windows, ve a la sección **Wind
 1. **Clona el repositorio en Documentos** (abre la app Terminal). Usa exactamente `Documentos/AgentOS`: ahí la buscan la
    extensión de Claude Desktop y las actualizaciones.
    ```
-   cd ~/Documents && git clone https://github.com/SandPalace/agentos.git AgentOS && cd AgentOS
+   cd ~/Documents && git clone https://github.com/SandPalace/backoffice.git AgentOS && cd AgentOS
    ```
    Todo lo que Back Office crea (datos, proyectos, logs, usuario y contraseña) se queda **dentro de esa carpeta**
    (`data/` para los datos y `workspaces/` para tus workspaces); no se instala nada en tu sistema (ni comandos globales, ni cambios al PATH). Esas dos carpetas nunca se suben a Git. Lo único fuera de la carpeta: la configuración de Claude, para que encuentre tus agentes.
@@ -40,7 +40,7 @@ Esta guía es para macOS (Linux es igual). Para Windows, ve a la sección **Wind
    - **Extensión (un clic, probada):** Claude Desktop → **Ajustes → Extensiones → Instalar extensión…** → elige
      `Documentos/AgentOS/dist/backoffice.mcpb`. En «Carpeta de Back Office» deja `Documentos/AgentOS`. Reinicia Claude Desktop.
    - **O el plugin completo (agentes y skills también):** Claude Desktop → **Personalizar → Plugins → Agregar marketplace** →
-     `SandPalace/agentos` → instala **backoffice**.
+     `SandPalace/backoffice` → instala **backoffice**.
    - **Prueba:** en una sesión **nueva** de Chat o Cowork pregunta «¿Qué equipos y agentes tengo en Back Office?». Debe usar
      las herramientas de Back Office (no leer archivos). En la pestaña **Code** de Claude Desktop no hace falta nada más.
    - Si un agente te dice que no tiene las herramientas de Back Office, no lo dejes «escribir directo en la carpeta»: conecta la
@@ -55,7 +55,7 @@ Otros comandos: `./bin/backoffice status`, `./bin/backoffice stop`.
 Abre **Claude Desktop → pestaña Code**, elige tu carpeta **Documentos** como proyecto y pega:
 
 > Instálame Back Office en esta computadora. Revisa que tenga Git y Node 22.13 o más nuevo; si falta algo, dime cómo
-> instalarlo y espera. Clona https://github.com/SandPalace/agentos.git en Documentos/AgentOS (si ya existe, detente y
+> instalarlo y espera. Clona https://github.com/SandPalace/backoffice.git en Documentos/AgentOS (si ya existe, detente y
 > pregúntame). Lee su CLAUDE.md e INSTALL.md, pregúntame el usuario y la contraseña de la oficina, corre el instalador
 > (Mac: ./install.sh · Windows: .\install.ps1) y pídeme permiso antes de cambiar mi configuración de Claude. Arranca
 > Back Office, haz el chequeo de salud y dime cómo conectar la extensión para Chat y Cowork. Si algo falla dos veces igual,
@@ -127,7 +127,7 @@ Instalador nativo para Windows 10/11 (PowerShell 5.1, el que ya trae Windows, o 
 2. Clona el repositorio:
    ```
    cd $HOME\Documents
-   git clone https://github.com/SandPalace/agentos.git AgentOS
+   git clone https://github.com/SandPalace/backoffice.git AgentOS
    cd AgentOS
    ```
    Igual que en Mac, todo (datos, proyectos, logs) se queda dentro de esa carpeta, en `data\` y `workspaces\`, y no se instala nada en tu sistema. Lo único fuera de la carpeta: la configuración de Claude, para que encuentre tus agentes.
@@ -144,7 +144,7 @@ Instalador nativo para Windows 10/11 (PowerShell 5.1, el que ya trae Windows, o 
    ```
    Se abre el navegador en http://localhost:4781. Otros comandos: `.\bin\backoffice.cmd status`, `stop`, `update`.
 5. Reinicia Claude Desktop y conecta Chat y Cowork igual que en Mac (paso 6): Ajustes → Extensiones → Instalar
-   extensión… → `Documentos\AgentOS\dist\backoffice.mcpb`, o Personalizar → Plugins → `SandPalace/agentos`.
+   extensión… → `Documentos\AgentOS\dist\backoffice.mcpb`, o Personalizar → Plugins → `SandPalace/backoffice`.
 
 Opciones del instalador: `-ResetLogin`, `-NoClaude`, `-NoClaudeCli`, `-NoDesktop`, `-NoSettings`
 (ej. `powershell -ExecutionPolicy Bypass -File .\install.ps1 -ResetLogin`).

@@ -33,7 +33,7 @@ Claude config, whether the office is running and from which folder, disk, Node, 
 - Missing script (versions before 1.3.0): if `A/.git` exists, `git fetch origin main && git show
   origin/main:scripts/update-check.mjs > "${TMPDIR:-/tmp}/backoffice-update-check.mjs" && node "${TMPDIR:-/tmp}/backoffice-update-check.mjs" --dir "$PWD"`
   (same for `backup-backoffice.mjs` in step 4: `... --dir "$PWD"`). No `.git` → the plan is `not-a-clone-reinstall`.
-- `fetch-failed` because the remote moved: `git remote set-url origin https://github.com/SandPalace/agentos.git`, rerun.
+- `fetch-failed` because the remote moved: `git remote set-url origin https://github.com/SandPalace/backoffice.git`, rerun.
 
 ## 3. Explain, then pick ONE plan
 
@@ -78,7 +78,7 @@ elsewhere`/`web-running-elsewhere` = another Back Office folder holds the ports:
 
 ## 6. Run the plan
 
-- **`fast-forward`**: `old-remote` note → `git remote set-url origin https://github.com/SandPalace/agentos.git`. Then
+- **`fast-forward`**: `old-remote` note → `git remote set-url origin https://github.com/SandPalace/backoffice.git`. Then
   `git pull --ff-only origin main` → `./bin/backoffice update` (npm ci, web build, plugin migration, desktop extension) →
   `./bin/backoffice start`. If the pull refuses, stop, show its message and the files it names, rerun step 2.
 - **`up-to-date`**: say so. With `repair`: after OK, `./bin/backoffice update` then `./bin/backoffice start`.
@@ -99,7 +99,7 @@ elsewhere`/`web-running-elsewhere` = another Back Office folder holds the ports:
 - **`not-a-clone-reinstall`** (the 2026-10-23 owner case): OLD = this folder. With OK:
   1. Backup (`./bin/backoffice backup` if it exists; else after the clone, `node "<NEW>/scripts/backup-backoffice.mjs" --dir "<OLD>"`).
   2. Stop the office from OLD. If OLD is `~/Documents/AgentOS`, rename it: `mv "<OLD>" "$HOME/Documents/AgentOS-copia-<YYYYMMDD>"`.
-  3. `git clone https://github.com/SandPalace/agentos.git "$HOME/Documents/AgentOS"` (= NEW).
+  3. `git clone https://github.com/SandPalace/backoffice.git "$HOME/Documents/AgentOS"` (= NEW).
   4. Copy the person's files into NEW (copy, OLD stays as is): `cp -Rp "<OLD>/data" "<NEW>/data"`, same for `workspaces`,
      `.claude`, `CLAUDE.local.md` and `plugins/backoffice/skills/tesseract-motion` when they exist (Windows `Copy-Item -Recurse`).
   5. Show what OLD had changed by hand: `diff -rq "<OLD>" "<NEW>" -x data -x workspaces -x node_modules -x .next -x .git -x dist -x backups | head -40`; ask about each.

@@ -234,7 +234,7 @@ Listo. Siguiente paso:
 y entra con el usuario que acabas de crear (http://localhost:${BACKOFFICE_WEB_PORT:-4781}).
 
 Para usar Back Office en Claude Desktop (Chat y Cowork):
-  1. Claude Desktop → Personalizar → Plugins → Agregar marketplace: SandPalace/agentos → instala «backoffice».
+  1. Claude Desktop → Personalizar → Plugins → Agregar marketplace: SandPalace/backoffice → instala «backoffice».
   2. Abre una sesión NUEVA de Cowork y pregunta: «¿Qué equipos y agentes tengo en Back Office?»
 MSG
 [ -n "$MCPB" ] && cat <<MSG

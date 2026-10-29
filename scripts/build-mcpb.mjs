@@ -25,8 +25,8 @@ export const manifest = {
   long_description:
     'Extensión de Back Office para Claude Desktop. Corre en tu computadora y habla con el servidor local de Back Office (127.0.0.1:4780); si está apagado lo intenta encender. Usa el código de tu carpeta de Back Office, así que se actualiza con ./bin/backoffice update. Nada sale de tu computadora.',
   author: { name: 'Back Office' },
-  repository: { type: 'git', url: 'https://github.com/SandPalace/agentos.git' },
-  homepage: 'https://github.com/SandPalace/agentos',
+  repository: { type: 'git', url: 'https://github.com/SandPalace/backoffice.git' },
+  homepage: 'https://github.com/SandPalace/backoffice',
   server: {
     type: 'node',
     entry_point: 'server/index.mjs',

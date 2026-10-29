@@ -74,7 +74,7 @@ A plugin installed from the terminal (`claude plugin install`, what `install.sh`
 Claude Desktop's Chat and Cowork load plugins from the person's account. Walk the person through it (you cannot click):
 
 1. **Plugin (recommended: agents, skills, hooks and the Back Office tools).** Claude Desktop → **Customize** → **Plugins** →
-   **Add marketplace** → `SandPalace/agentos` → install **backoffice**. Then open a NEW Cowork session and ask «¿Qué equipos y
+   **Add marketplace** → `SandPalace/backoffice` → install **backoffice**. Then open a NEW Cowork session and ask «¿Qué equipos y
    agentes tengo en Back Office?». The server should be running (`./bin/backoffice start`); the tools try to start it themselves.
 2. **Fallback: the desktop extension** (only the Back Office tools; also works in Chat). If step 1 is not possible or Cowork
    still has no Back Office tools: Claude Desktop → **Settings** → **Extensions** → **Install extension…** → choose
@@ -127,7 +127,7 @@ not available (old plugin, or the person asks to do it by hand); the rules are t
    see «Plugin "…" not found in marketplace» errors for the old plugins: expected, harmless.
 4. **Stopped halfway?** Everything is idempotent; re-run what failed:
    - pull failed → fix the network or local changes, then `git pull --ff-only`;
-   - `git pull` complains about the remote (the repo moved to `SandPalace/agentos`): `git remote set-url origin https://github.com/SandPalace/agentos.git`, then pull again;
+   - `git pull` complains about the remote (the repo moved to `SandPalace/backoffice`; `SandPalace/agentos` is no longer it): `git remote set-url origin https://github.com/SandPalace/backoffice.git`, then pull again;
    - `npm ci`/build failed → `./bin/backoffice update` again (it repeats only what is needed);
    - plugin step failed or old plugins still listed → `node scripts/migrate-plugins.mjs` (safe to run any number of times);
    - by hand, last resort: `claude plugin uninstall <old>@agentos` for each old one, `claude plugin marketplace remove
@@ -221,7 +221,7 @@ If the same command fails twice the same way, stop: show the exact error and ask
 ## Report a bug or idea
 
 Use the MCP tool `backoffice_issue_report` (kind `bug` or `feature`, your agent id, steps, expected vs actual; no secrets).
-It saves the report and returns a prefilled GitHub issue URL for `SandPalace/agentos`: give the person the link so THEY
+It saves the report and returns a prefilled GitHub issue URL for `SandPalace/backoffice`: give the person the link so THEY
 review and submit it. Use it only for Back Office faults, not for problems of the person's computer.
 
 ## Never

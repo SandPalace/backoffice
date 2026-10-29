@@ -81,7 +81,8 @@ prepara un reporte para GitHub y tú lo envías.
   computadora; los agentes leen tus chats y solo envían cuando tú apruebas cada mensaje.
 - **Vista oficina opcional:** la app abre en la vista normal; la oficina 3D se prende con el botón «Vista oficina».
 - **Repo genérico:** el repositorio público trae solo el producto (sin material de clase) y ahora vive en
-  `SandPalace/agentos`; tu clon viejo sigue funcionando (GitHub redirige).
+  `SandPalace/backoffice`. Si tu clon apunta a `SandPalace/agentos` o `kikirrins/agentos`, cámbialo con
+  `git remote set-url origin https://github.com/SandPalace/backoffice.git` (lo hace `update-backoffice`).
 
 ## Dudas y fallas
 

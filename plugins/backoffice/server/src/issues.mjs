@@ -8,7 +8,7 @@ import { AppError } from './store.mjs'
 import { repoRoot } from './paths.mjs'
 import { PLUGIN_ROOT } from './roster.mjs'
 
-export const DEFAULT_ISSUES_REPO = 'SandPalace/agentos'
+export const DEFAULT_ISSUES_REPO = 'SandPalace/backoffice'
 const KINDS = { bug: { prefix: 'Bug', label: 'bug' }, feature: { prefix: 'Idea', label: 'enhancement' } }
 const MAX_URL = 7500 // GitHub corta URLs muy largas; el cuerpo se recorta antes
 const clean = (v, max) => (typeof v === 'string' ? v.trim().slice(0, max) : '')

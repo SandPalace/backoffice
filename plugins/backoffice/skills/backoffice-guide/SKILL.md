@@ -58,7 +58,7 @@ When step 7 is done, summarize what they did and propose the next task.
 - **Something in Back Office fails or I have an idea for it.** Prepare a report with `backoffice_issue_report` (`bug` or
   `feature`, and your own agent id in `agent`: it is logged as the reporter) and give the person the GitHub link it returns; they review it and press «Submit new issue». Nothing is sent without their click.
 - **Connect Back Office to Chat and Cowork (no `backoffice_*` tools here).** A plugin installed from the terminal is for Claude
-  Code only. In Claude Desktop: Customize → Plugins → Add marketplace `SandPalace/agentos` → install «backoffice», then open a
+  Code only. In Claude Desktop: Customize → Plugins → Add marketplace `SandPalace/backoffice` → install «backoffice», then open a
   NEW Cowork session and ask «¿Qué equipos y agentes tengo en Back Office?». Fallback: Settings → Extensions → Install
   extension… → `dist/backoffice.mcpb` inside the Back Office folder (choose that folder when asked). A tool that answers
   «Back Office está apagado» means: run `./bin/backoffice start` in the Back Office folder. Other MCP clients (Codex, OpenCode,

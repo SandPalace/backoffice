@@ -327,7 +327,7 @@ Write-Host "y entra con el usuario que acabas de crear (http://localhost:$WEB_PO
 Write-Host 'Si Windows pregunta por el Firewall para "node", elige "Permitir" (solo redes privadas).'
 Write-Host ''
 Write-Host 'Para usar Back Office en Claude Desktop (Chat y Cowork):'
-Write-Host '  1. Claude Desktop -> Personalizar -> Plugins -> Agregar marketplace: SandPalace/agentos -> instala "backoffice".'
+Write-Host '  1. Claude Desktop -> Personalizar -> Plugins -> Agregar marketplace: SandPalace/backoffice -> instala "backoffice".'
 Write-Host '  2. Abre una sesion NUEVA de Cowork y pregunta: "Que equipos y agentes tengo en Back Office?"'
 & node (Join-Path $REPO 'scripts\build-mcpb.mjs') *> $null
 if ($LASTEXITCODE -eq 0) {

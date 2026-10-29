@@ -34,10 +34,12 @@ import { join, resolve, dirname, basename, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
 export const REPO = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-export const OFFICIAL_URL = "https://github.com/SandPalace/agentos.git";
+export const OFFICIAL_URL = "https://github.com/SandPalace/backoffice.git";
 const OFFICIAL_OWNER = OFFICIAL_URL.split("/")[3].toLowerCase();
-const OLD_OWNER = "kikirrins"; // the repo lived at kikirrins/agentos until 2026-10-22; GitHub redirects it
-const RAW_PLUGIN_JSON = "https://raw.githubusercontent.com/SandPalace/agentos/main/plugins/backoffice/.claude-plugin/plugin.json";
+// Old homes of the public repo: kikirrins/agentos until 2026-10-22, SandPalace/backoffice until 2026-10-29.
+// SandPalace/backoffice is now the private monorepo, so a clone still pointing there must be repointed (`old-remote`).
+const OLD_REMOTES = ["kikirrins/agentos", "sandpalace/agentos"];
+const RAW_PLUGIN_JSON = "https://raw.githubusercontent.com/SandPalace/backoffice/main/plugins/backoffice/.claude-plugin/plugin.json";
 const PLUGIN_JSON = "plugins/backoffice/.claude-plugin/plugin.json";
 const OLD_PLUGIN_JSON = "plugins/agentos/.claude-plugin/plugin.json"; // a folder or commit from before the rename
 /** Old plugin ids (all in the pre-rename marketplace `agentos`): the single `agentos` and the 7 before 2026-10-22. */
@@ -83,10 +85,11 @@ export function classifyRemote(url, extra = "") {
   const u = String(url || "").trim();
   if (!u) return { official: false, old: false };
   if (extra && (u === extra || sameDir(u, extra))) return { official: true, old: false };
-  const m = u.match(/github\.com[:/]+([^/]+)\/(?:agentos|backoffice)(?:\.git)?\/?$/i); // the public repo is still named agentos
+  const m = u.match(/github\.com[:/]+([^/]+)\/(agentos|backoffice)(?:\.git)?\/?$/i);
   if (!m) return { official: false, old: false };
-  const owner = m[1].toLowerCase();
-  return { official: owner === OFFICIAL_OWNER || owner === OLD_OWNER, old: owner === OLD_OWNER };
+  const slug = `${m[1]}/${m[2]}`.toLowerCase();
+  const old = OLD_REMOTES.includes(slug);
+  return { official: old || slug === `${OFFICIAL_OWNER}/backoffice`, old };
 }
 
 /** Bytes under `dir` (no symlinks followed). Stops counting after `limit` entries so a huge folder cannot stall it. */
