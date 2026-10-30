@@ -346,6 +346,7 @@ export default function Page() {
                 linked={hasSession}
                 codexKeys={codexKeys}
                 coworkKeys={coworkKeys}
+                teamNames={teamNames}
               />
             </div>
             {seat && (
@@ -468,6 +469,7 @@ export default function Page() {
                   linked={hasSession}
                   codexKeys={codexKeys}
                   coworkKeys={coworkKeys}
+                  teamNames={teamNames}
                 />
               </div>
               {seat && (

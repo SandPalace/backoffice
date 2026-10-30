@@ -52,7 +52,7 @@ export default function ProjectHome() {
               Historial y comentarios{home.comments ? ` (${home.comments})` : ''}
             </button>
           )}
-          <Link href="/canvas" className="rounded-full border border-line px-3 py-1 text-xs font-semibold hover:bg-bg">Ver todo el Canvas</Link>
+          <Link href="/canvas" className="rounded-full border border-line px-3 py-1 text-xs font-semibold hover:bg-bg">Ver todos los Boards</Link>
         </div>
       </div>
       {err && home === undefined ? (
