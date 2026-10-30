@@ -18,21 +18,22 @@ plugin y sus puertos: pueden estar encendidos al mismo tiempo.
 
 ## Empieza aquí: instala tu Back Office y trae lo que tenías en AgentOS
 
-Abre Claude Desktop → pestaña **Code**, con la **carpeta de tu proyecto** abierta (la de tu empresa, por ejemplo
-`Documentos/Acme`; o `claude` en la terminal, dentro de ella). Back Office se instala adentro, en `.backoffice`. Cambia `<Empresa>` por el nombre corto de tu empresa y pega este prompt completo:
+Funciona igual en Mac y en Windows: el agente se encarga de las rutas y los comandos de tu sistema. Abre Claude Desktop →
+pestaña **Code** con la **carpeta del proyecto de tu empresa** (o `claude` en la terminal, dentro de ella). Back Office se
+instala adentro, en una carpeta `.backoffice`. Cambia `<Empresa>` por el nombre corto de tu empresa y pega este prompt:
 
-> Quiero instalar Back Office para mi empresa <Empresa> como proyecto nuevo y traer lo que tenía en AgentOS.
+> Quiero instalar Back Office para mi empresa <Empresa> en este proyecto y traer lo que tenía en AgentOS.
+> Detecta mi sistema operativo y usa sus rutas y comandos.
 >
-> 1. Clona https://github.com/SandPalace/backoffice.git en `.backoffice` dentro de esta carpeta (la de mi proyecto; si
->    ya existe, detente y pregúntame). Si esta carpeta es un repo de git, agrega `.backoffice/` a su `.gitignore`. No toques mi carpeta vieja `Documentos/AgentOS`: solo se lee, nunca se borra ni se mueve.
+> 1. Clona https://github.com/SandPalace/backoffice.git en una carpeta `.backoffice` dentro de esta carpeta (si ya existe,
+>    detente y pregúntame). Si esta carpeta es un repo de git, agrega `.backoffice/` a su `.gitignore`.
 > 2. Entra a `.backoffice`, lee su `CLAUDE.md` y sigue la sección «Instalación nueva»: corre el instalador con el nombre
 >    de mi empresa (<Empresa>), que me pida mi usuario y contraseña de la oficina (yo los escribo), arranca Back Office y haz
 >    el chequeo de salud.
-> 3. Si `Documentos/AgentOS` existe, sigue la sección «Traer datos de AgentOS» del `CLAUDE.md`: muéstrame mis proyectos
->    viejos (`node scripts/import-agentos.mjs --from ~/Documents/AgentOS --list`), yo elijo cuál es <Empresa>, muéstrame
->    el plan y solo con mi OK copia los datos.
-> 4. Ábreme la oficina web en el puerto que eligió el instalador (http://localhost:4781 si es mi primer Back Office) y dime
->    qué ves (equipos, tareas, leads y archivos que llegaron).
+> 3. Busca mi AgentOS viejo (normalmente una carpeta `AgentOS` en mis Documentos) y sigue la sección «Traer datos de
+>    AgentOS» del `CLAUDE.md`: muéstrame mis proyectos viejos, yo elijo cuál es <Empresa>, muéstrame el plan y solo con mi
+>    OK copia los datos. Mi AgentOS viejo solo se lee: nunca lo borres ni lo muevas.
+> 4. Ábreme la oficina web en el puerto que eligió el instalador y dime qué ves (equipos, tareas, leads y archivos).
 > 5. Dime cómo conectar el plugin de mi empresa en Claude Desktop (sección «Configurar el plugin y el MCP en Claude Desktop»
 >    de INSTALL.md) y cómo abrir al CEO para el arranque de la empresa.
 >

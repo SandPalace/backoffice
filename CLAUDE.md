@@ -44,7 +44,10 @@ update, check or repair Back Office («revisa y repara mi Back Office», «actua
 
 ## Bring data from AgentOS («Traer datos de AgentOS», «migra mi AgentOS»)
 
-The old AgentOS Local (usually `~/Documents/AgentOS`, sometimes `~/AgentOS` + `~/.agentos`) may hold several projects.
+The old AgentOS Local may hold several projects. Find it yourself, on any OS: usually an `AgentOS` folder in the person's
+Documents (Mac `~/Documents/AgentOS`; Windows `[Environment]::GetFolderPath('MyDocuments')` + `\AgentOS`, which may be
+inside OneDrive), sometimes `~/AgentOS` + `~/.agentos`; the right one has `data/agentos.db` (or `data/backoffice.db`). If
+there are several or none, ask. On Windows run the same commands with `node` and `.\bin\backoffice.cmd stop|start`.
 This Back Office takes ONE of them (this company); the others go to their own Back Office later.
 
 1. `node scripts/import-agentos.mjs --from "<old folder>" --list` → show the old projects and their counts; the person picks one.
