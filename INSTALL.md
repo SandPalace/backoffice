@@ -81,11 +81,11 @@ configuración de Claude Desktop (`claude_desktop_config.json`, en Mac y en Wind
    el clic. Se llama **«Back Office · <Empresa>»** y ya trae tu carpeta en «Carpeta de Back Office»: no la cambies. Reinicia
    Claude Desktop. Con esto Chat y Cowork tienen las herramientas de Back Office. (A mano: Ajustes → Extensiones → Instalar
    extensión… → ese archivo.)
-2. **Plugin con los agentes y skills, para Cowork (a mano).** **Personalizar → Plugins → Agregar marketplace** → la carpeta
-   `dist/company-plugin` de tu Back Office (tu agente te da la ruta exacta, por ejemplo
-   `/Users/ana/Documents/Acme/.backoffice/dist/company-plugin`) → instala **backoffice-<empresa>** → reinicia Claude Desktop.
-   `.backoffice` empieza con punto y está oculta: en el selector de carpetas, en Mac usa Cmd+Shift+G y pega la ruta (o
-   Cmd+Shift+. para ver las carpetas ocultas); en Windows pega la ruta en la barra de dirección.
+2. **Plugin con los agentes y skills, para Chat y Cowork (subir un archivo).** «Agregar marketplace» solo acepta URLs y
+   repos de GitHub, así que el plugin se sube como archivo: tu agente corre `node scripts/build-company-plugin.mjs`, que deja
+   `dist/backoffice-<empresa>.zip`, y te abre la carpeta `dist` (Mac `open -R`, Windows `explorer /select,`). En Claude
+   Desktop → **Personalizar → Plugins**, usa la opción para subir un plugin y elige ese `.zip` (o arrástralo). Reinicia
+   Claude Desktop.
 
 (Sin empresa: `dist/backoffice.mcpb`, en «Carpeta de Back Office» elige tu carpeta; el plugin genérico se agrega con el
 marketplace `SandPalace/backoffice`.)

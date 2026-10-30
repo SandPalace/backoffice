@@ -35,7 +35,7 @@ instala adentro, en una carpeta `.backoffice`. Cambia `<Empresa>` por el nombre 
 >    OK copia los datos. Mi AgentOS viejo solo se lee: nunca lo borres ni lo muevas.
 > 4. Ábreme la oficina web en el puerto que eligió el instalador y dime qué ves (equipos, tareas, leads y archivos).
 > 5. Conecta Claude Desktop (sección «Configurar el plugin y el MCP en Claude Desktop» de INSTALL.md): ábreme la extensión
->    de mi empresa para que yo dé el clic en Instalar, dame la ruta exacta para agregar el plugin en Personalizar → Plugins
+>    de mi empresa para que yo dé el clic en Instalar, genera el plugin de mi empresa como .zip y ábreme su carpeta para subirlo en Personalizar → Plugins
 >    y dime cómo abrir al CEO para el arranque de la empresa.
 >
 > Nunca me pidas ni muestres contraseñas, llaves o el contenido de `.env`; nunca borres carpetas ni hagas `git reset --hard`.
@@ -77,8 +77,9 @@ Resumen (el paso a paso, con lo que debes ver en cada pantalla, está en INSTALL
    `node scripts/build-company-plugin.mjs --register`.
 2. **Claude Desktop (Chat y Cowork):** el instalador ya agrega el MCP a Claude Desktop (Chat). Para Cowork, pídele a tu
    agente «instálame la extensión de Back Office en Claude Desktop»: abre `dist/backoffice-<empresa>.mcpb` y tú das el clic
-   en **Instalar**. Los agentes y skills en Cowork se agregan a mano: Personalizar → Plugins → Agregar marketplace → la ruta
-   de `dist/company-plugin` que te da tu agente (la carpeta `.backoffice` está oculta: pega la ruta). Reinicia Claude Desktop.
+   en **Instalar**. Los agentes y skills se suben como archivo: tu agente
+   genera `dist/backoffice-<empresa>.zip` (`node scripts/build-company-plugin.mjs`) y te abre la carpeta; en Personalizar →
+   Plugins subes ese `.zip`. Reinicia Claude Desktop.
 3. **Prueba:** en una sesión nueva pregunta «¿Qué equipos tengo?»: debe responder con los equipos de esa empresa.
 4. **Varias empresas:** cada agente lleva el nombre de su empresa (`backoffice-acme:ceo`, `backoffice-beta:ceo`) y cada extensión
    también («Back Office · Acme»). Sin nombre de empresa todo se llama `backoffice` y la extensión es `dist/backoffice.mcpb`.
