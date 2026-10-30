@@ -63,9 +63,9 @@ export default function Page() {
       Number(new URLSearchParams(window.location.search).get("equipo")) || 0,
     );
   }, []);
-  // La oficina muestra todos los equipos del proyecto (el activo primero), cada uno en su isla; sin equipos, solo la COO.
+  // La oficina muestra todos los equipos de la empresa, cada uno en su isla; sin equipos, solo la COO.
   const orderedTeams = useMemo(
-    () => [...teams.filter((t) => t.active), ...teams.filter((t) => !t.active)],
+    () => teams,
     [teams],
   );
   const teamMembers = useMemo(

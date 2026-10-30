@@ -4,13 +4,13 @@ The list of agents is NOT written here: it is generated from the teams of the `b
 `roster.json` and served live by the server. Never answer "which agents exist" from memory.
 
 - `backoffice_overview.roster`: all teams (the field is still called `plugins`), with each agent's short description (<=160 chars), `model`,
-  `in_active_team`, `working_now`, `open_tasks`; plus `totals` and `not_in_active_team` (installed but not in any
+  `in_team`, `working_now`, `open_tasks`; plus `totals` and `not_in_team` (installed but not in any
   team).
 - `backoffice_roster {plugin?, agent?}`: full description and skills of one team (`plugin` = team id) or one agent. An unknown id returns
   an error that lists the valid ones.
 - One plugin, `backoffice`, holds every agent and skill; teams are a feature of the app. Team id: `marketing-team`, `dev-team`... `backoffice-core` is the system team (you, Assistant — id `coo` — and your guide skills).
-- `in_active_team: false` is not "unavailable": the agent is installed and the person adds it in the Equipos tab
-  (create or edit a team, add the agent). `in_active_team` means «in one of the company's teams»: all teams work at once. An agent missing from the roster means the `backoffice` plugin is outdated (`./bin/backoffice update`).
+- `in_team: false` is not "unavailable": the agent is installed and the person adds it in the Equipos tab
+  (create or edit a team, add the agent). All teams are available at once; there is nothing to activate. An agent missing from the roster means the `backoffice` plugin is outdated (`./bin/backoffice update`).
 
 ## Entry points (guidance the roster cannot derive)
 
@@ -32,4 +32,4 @@ New teams appear in the roster without editing this file; if one has a lead, rea
 1. Match the request to descriptions in the roster, not to agent names.
 2. Request spanning teams: route to the lead of each team, say the order, one task per lead.
 3. One recommendation (or two with the difference) per answer; do not list the whole roster.
-4. If the best agent is `not_in_active_team`, say so and how to add it.
+4. If the best agent is `not_in_team`, say so and how to add it.

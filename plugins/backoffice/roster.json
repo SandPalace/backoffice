@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-29T21:41:53.753Z",
+  "generated_at": "2026-10-30T01:57:13.243Z",
   "plugins": [
     {
       "id": "backoffice-core",
@@ -22,7 +22,7 @@
         },
         {
           "id": "team-status",
-          "description": "Produces the status report of Back Office's active teams as brief Markdown - what needs the person first, what each agent is working on, risks and the next action. Use it when asked \"where are we?\", \"what's next?\", \"what's stuck?\", or at the start or end of the day."
+          "description": "Produces the status report of Back Office's teams as brief Markdown - what needs the person first, what each agent is working on, risks and the next action. Use it when asked \"where are we?\", \"what's next?\", \"what's stuck?\", or at the start or end of the day."
         },
         {
           "id": "update-backoffice",

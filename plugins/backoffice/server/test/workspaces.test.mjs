@@ -56,7 +56,7 @@ test('migración: una base con el esquema viejo queda toda en el workspace defau
   const store = createStore(db)
   assert.equal(store.listTasks()[0].id, 'T-old')
   assert.equal(store.listTasks()[0].outputs[0].path, '/tmp/a.md')
-  assert.equal(store.listTeams()[0].active, true)
+  assert.equal(store.listTeams()[0].name, 'Marketing')
   assert.equal(store.listTeams()[0].members[0].context, 'ctx del cmo')
   assert.equal(store.getSystemAgent('coo').context, 'contexto del COO')
   assert.equal(store.getSystemAgent('coo').display_name, 'Rafa')
@@ -116,15 +116,12 @@ test('aislamiento: tareas, equipos, COO, overview y contexto por workspace', asy
     assert.equal((await call('PATCH', `/api/tasks/${ta.id}`, { status: 'doing' }, { 'x-backoffice-workspace': 'default' })).status, 404)
     assert.equal((await call('PATCH', `/api/tasks/${ta.id}`, { status: 'doing' }, A)).body.status, 'doing')
     assert.equal((await call('POST', `/api/tasks/${ta.id}/outputs`, { path: join(ROOT, 'x.md') }, { 'x-backoffice-workspace': 'default' })).status, 404)
-    // equipos: el activo es por workspace
+    // equipos: por workspace
     const t1 = (await call('POST', '/api/teams', { name: 'Ventas', members: [{ agent_id: 'lead-qualifier' }] })).body
     const t2 = (await call('POST', '/api/teams', { name: 'Marketing', members: [{ agent_id: 'cmo', context: 'ctx acme' }] }, A)).body
-    assert.equal(t1.active, true)
-    assert.equal(t2.active, true) // primer equipo de su workspace
     const t3 = (await call('POST', '/api/teams', { name: 'Otro', members: [{ agent_id: 'analyst' }] }, A)).body
     await call('POST', `/api/teams/${t3.id}/activate`, null, A)
-    assert.equal((await call('GET', '/api/teams')).body[0].active, true) // default intacto
-    assert.deepEqual((await call('GET', '/api/teams', null, A)).body.map((t) => [t.name, t.active]), [['Marketing', false], ['Otro', true]])
+    assert.deepEqual((await call('GET', '/api/teams', null, A)).body.map((t) => t.name), ['Marketing', 'Otro'])
     assert.equal((await call('POST', `/api/teams/${t2.id}/activate`, null, { 'x-backoffice-workspace': 'default' })).status, 404)
     // Assistant (coo) es UNA para todos los proyectos: nombre y contexto se comparten; lo que ve sí es del workspace
     await call('PATCH', '/api/system/coo', { display_name: 'Rafa', context: 'contexto global' })
@@ -139,14 +136,14 @@ test('aislamiento: tareas, equipos, COO, overview y contexto por workspace', asy
     assert.match(cA.context, /contexto global/)
     assert.match(cA.context, /«Back Office» \(default\).*Ventas/, 'Assistant ve todos los proyectos')
     assert.match(cA.context, /«Acme» \(acme\) ← carpeta actual/)
-    assert.match(cA.context, /«Otro» \(activo/)
+    assert.match(cA.context, /«Otro» \(analyst\)/)
     assert.equal(cA.workspace.name, 'Acme')
     const cD = (await call('GET', '/api/context?agent=coo')).body
     assert.match(cD.context, /abierta en la carpeta de «Back Office»/)
     assert.match(cD.context, /«Acme» \(acme\)/)
     const pr = (await call('GET', '/api/projects')).body
     assert.deepEqual(pr.map((p) => p.id), ['default', 'acme'])
-    assert.equal(pr.find((p) => p.id === 'acme').active_team, 'Otro')
+    assert.deepEqual(pr.find((p) => p.id === 'acme').teams.map((t) => t.name), ['Marketing', 'Otro'])
     assert.match(cD.context, /contexto global/)
     await call('POST', `/api/teams/${t2.id}/activate`, null, A)
     assert.match((await call('GET', '/api/context?agent=cmo', null, A)).body.context, /Workspace: «Acme»/)
@@ -173,7 +170,7 @@ test('aislamiento: tareas, equipos, COO, overview y contexto por workspace', asy
     assert.equal((await call('GET', '/api/overview?workspace=nope')).status, 404)
     // borrar equipo activo: el reemplazo es del mismo workspace
     await call('DELETE', `/api/teams/${t3.id}`, null, A)
-    assert.equal((await call('GET', '/api/teams', null, A)).body[0].active, true)
+    assert.equal((await call('GET', '/api/teams', null, A)).body.length >= 1, true)
   } finally { await app.close() }
 })
 

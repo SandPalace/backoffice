@@ -53,7 +53,7 @@ agente ceo».) Dile:
 
 > Arranca mi empresa con el checklist del C-board.
 
-El CEO sigue el skill `company-kickoff`: revisa la instalación y la migración, te recomienda qué equipos activar, te hace
+El CEO sigue el skill `company-kickoff`: revisa la instalación y la migración, te recomienda qué equipos crear, te hace
 preguntas en rondas cortas para formar la base de conocimiento de tu empresa (`company/` en Archivos), coordina a los demás
 agentes (finanzas, marketing, ventas), publica en **Inicio** (y en **Boards**) un tablero con el estado general de la empresa
 y te deja un plan con los siguientes pasos, uno por uno, como tareas en **Tareas**.

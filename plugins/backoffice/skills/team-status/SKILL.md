@@ -1,6 +1,6 @@
 ---
 name: team-status
-description: Produces the status report of Back Office's active teams as brief Markdown - what needs the person first, what each agent is working on, risks and the next action. Use it when asked "where are we?", "what's next?", "what's stuck?", or at the start or end of the day.
+description: Produces the status report of Back Office's teams as brief Markdown - what needs the person first, what each agent is working on, risks and the next action. Use it when asked "where are we?", "what's next?", "what's stuck?", or at the start or end of the day.
 allowed-tools: mcp__plugin_backoffice_backoffice
 ---
 
@@ -15,12 +15,12 @@ allowed-tools: mcp__plugin_backoffice_backoffice
    agents with status `waiting` and `agile.sprints_in_review` (a sprint report waiting for «Completar sprint»). Order:
    pending review, blocked, waiting. Each item: task, agent, what is needed from the person. If `agile.active_sprint` exists,
    add one line: sprint name, goal, end date and progress (`progress.tasks.done`/`total`, percent).
-4. **What each agent is doing**: only teams with `active: true`. Per member: name, status and their open task
+4. **What each agent is doing**: every team of the company. Per member: name, status and their open task
    (or "no open tasks"). If `loose_sessions` brings sessions without a team, add them in one line.
-   Optionally add `roster.working_now` agents that are not in the active team (they are working outside it).
+   Optionally add `roster.working_now` agents that are not in any team (they are working outside one).
 5. **Risks**: only with a concrete signal (blocked task, `waiting` agent, a task in `doing` with no movement
-   according to `backoffice_task_list`, an active team with no tasks). With no signal, write "No risks detected".
-   Add a one-line "Installed but not in your team" with a few agent ids from `roster.not_in_active_team` ONLY if one clearly
+   according to `backoffice_task_list`, a team with no tasks). With no signal, write "No risks detected".
+   Add a one-line "Installed but not in your team" with a few agent ids from `roster.not_in_team` ONLY if one clearly
    fits the open work or the person asked; never dump the list (`backoffice_roster` has the descriptions to check first).
 6. **Next action**: just one, with who does it. Start with what is waiting on the person.
 7. If the person asks to save it, write it with `backoffice_file_write` as `coo/<YYYY-MM-DD>-status/report.md` and tell them it is in the Archivos tab. You may add a line with recent files (`backoffice_file_list`) if they are relevant.
@@ -52,7 +52,7 @@ Example (fictional data, in Spanish):
 
 ```
 # Estado de Back Office, 13 oct 2026
-**Equipo activo:** Cobranza · **Tareas:** 1 por hacer · 1 en curso · 1 bloqueada · 2 en revisión · 4 hechas
+**Equipos:** Cobranza · **Tareas:** 1 por hacer · 1 en curso · 1 bloqueada · 2 en revisión · 4 hechas
 
 ## Te necesitan primero
 - Antigüedad de saldos de septiembre (portfolio-analyst, en revisión): revisa el archivo y apruébalo.
@@ -73,7 +73,7 @@ Tú: aprueba la antigüedad de saldos y dime los días de gracia de tu política
 
 ## Never
 - Invent figures, statuses or dates, or round "by eye".
-- List inactive teams as if they were working.
+- Say a team is working when none of its agents has a session or a task.
 - Mark `done` or say something is approved.
 - Go past 25 lines: offer the rest as detail.
 

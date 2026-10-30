@@ -35,21 +35,21 @@ test('roster.json está al día (si falla: node scripts/build-roster.mjs)', () =
   for (const p of file.plugins) for (const a of p.agents) assert.ok(a.description.length <= 300)
 })
 
-test('overview incluye roster con in_active_team según el equipo activo', async () => {
+test('overview incluye roster con in_team según el equipo activo', async () => {
   const { app, call } = await boot({ roster: { ...FAKE, source: 'test' } })
   let o = (await call('GET', '/api/overview')).body
   assert.deepEqual(o.roster.totals, { plugins: 2, agents: 3, skills: 1 })
-  assert.deepEqual(o.roster.not_in_active_team, ['lead', 'worker', 'solo'])
+  assert.deepEqual(o.roster.not_in_team, ['lead', 'worker', 'solo'])
   assert.ok(o.roster.plugins[0].agents[0].description.length <= 160)
   const team = (await call('POST', '/api/teams', { name: 'A', members: [{ agent_id: 'lead' }] })).body
   await call('POST', `/api/teams/${team.id}/activate`)
   await call('POST', '/api/tasks', { title: 't', agent: 'alpha-team:worker' })
   o = (await call('GET', '/api/overview')).body
   const byId = Object.fromEntries(o.roster.plugins.flatMap((p) => p.agents).map((a) => [a.id, a]))
-  assert.equal(byId.lead.in_active_team, true)
-  assert.equal(byId.worker.in_active_team, false)
+  assert.equal(byId.lead.in_team, true)
+  assert.equal(byId.worker.in_team, false)
   assert.equal(byId.worker.open_tasks, 1)
-  assert.deepEqual(o.roster.not_in_active_team, ['worker', 'solo'])
+  assert.deepEqual(o.roster.not_in_team, ['worker', 'solo'])
   const ctx = (await call('GET', '/api/context?agent=coo')).body.context
   assert.match(ctx, /3 agentes en 2 equipos/)
   assert.match(ctx, /backoffice_roster/)
@@ -120,7 +120,7 @@ test('validateTeams: detecta huérfanos, duplicados e ids que no existen', () =>
   assert.match(errs, /team y-team: agent «ghost» does not exist/)
 })
 
-test('aislamiento: in_active_team de un workspace no se filtra a otro', async () => {
+test('aislamiento: in_team de un workspace no se filtra a otro', async () => {
   const { app, call } = await boot({ roster: { ...FAKE, source: 'test' } })
   await call('POST', '/api/workspaces', { name: 'Acme' })
   const A = { 'x-backoffice-workspace': 'acme' }
@@ -128,8 +128,8 @@ test('aislamiento: in_active_team de un workspace no se filtra a otro', async ()
   await call('POST', `/api/teams/${team.id}/activate`, null, A)
   const inA = (await call('GET', '/api/overview', null, A)).body.roster
   const inD = (await call('GET', '/api/overview')).body.roster
-  assert.ok(!inA.not_in_active_team.includes('solo'))
-  assert.ok(inD.not_in_active_team.includes('solo'))
+  assert.ok(!inA.not_in_team.includes('solo'))
+  assert.ok(inD.not_in_team.includes('solo'))
   assert.equal(inA.totals.agents, inD.totals.agents) // el roster es global
   await app.close()
 })

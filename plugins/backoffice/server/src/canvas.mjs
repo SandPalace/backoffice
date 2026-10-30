@@ -73,7 +73,7 @@ export function createCanvas({ db, store, blobs, files, limits = DEFAULT_LIMITS 
   const homeRow = (ws) => db.prepare('SELECT * FROM artifacts WHERE workspace_id = ? AND is_home = 1').get(ws)
 
   // scope_id por defecto: workspace = el workspace; agent = el agente que llama; team = el equipo del workspace que lo
-  // incluye (el activo primero) o, si no está en ninguno, el plugin del roster al que pertenece.
+  // incluye (el más antiguo si son varios) o, si no está en ninguno, el plugin del roster al que pertenece.
   function resolveScope(scopeType, scopeId, agent, ws) {
     if (!SCOPES.includes(scopeType)) throw bad(`scope_type must be one of: ${SCOPES.join(', ')}`)
     const sid = scopeId === undefined || scopeId === null || scopeId === '' ? null : String(scopeId).trim().toLowerCase()
@@ -92,8 +92,7 @@ export function createCanvas({ db, store, blobs, files, limits = DEFAULT_LIMITS 
       if (store.getTeam(sid, ws) || store.getRoster({}, ws).plugins.some((p) => p.id === sid)) return sid
       throw new AppError('not_found', `No existe el equipo ${sid} en este workspace`, 404)
     }
-    const teams = store.listTeams(ws).filter((t) => t.members.some((m) => m.agent_id === agent))
-    const t = teams.find((x) => x.active) ?? teams[0]
+    const t = store.listTeams(ws).find((x) => x.members.some((m) => m.agent_id === agent))
     return t ? t.id : store.getRoster({ agent }, ws).plugin
   }
 

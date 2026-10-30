@@ -493,8 +493,10 @@ export function createStore(db, { roster: rosterOpt = null } = {}) {
       return { agent_id, display_name, avatar, context, session_ref, position: i }
     })
   }
+  // «Activo» ya no existe: todos los equipos de la empresa están disponibles a la vez (la columna queda por compatibilidad).
+  const omitActive = ({ active, ...t }) => t
   const withMembers = (t) =>
-    t && { ...t, active: !!t.active, members: db.prepare('SELECT agent_id, display_name, avatar, context, session_ref FROM team_members WHERE team_id = ? ORDER BY position').all(t.id) }
+    t && { ...omitActive(t), members: db.prepare('SELECT agent_id, display_name, avatar, context, session_ref FROM team_members WHERE team_id = ? ORDER BY position').all(t.id) }
   const listTeams = (ws = DEFAULT_WS) => db.prepare('SELECT * FROM teams WHERE workspace_id = ? ORDER BY created_at').all(ws).map(withMembers)
   // Con `ws`, un equipo de otro workspace no existe.
   const getTeam = (id, ws = null) => {
@@ -518,8 +520,7 @@ export function createStore(db, { roster: rosterOpt = null } = {}) {
     const id = `team-${randomUUID().slice(0, 8)}`
     const ts = now()
     inTx(() => {
-      const first = db.prepare('SELECT COUNT(*) AS n FROM teams WHERE workspace_id = ?').get(ws).n === 0 // el primer equipo del workspace queda activo
-      db.prepare('INSERT INTO teams (id, name, active, created_at, updated_at, workspace_id) VALUES (?, ?, ?, ?, ?, ?)').run(id, String(name).trim(), first ? 1 : 0, ts, ts, ws)
+      db.prepare('INSERT INTO teams (id, name, active, created_at, updated_at, workspace_id) VALUES (?, ?, 0, ?, ?, ?)').run(id, String(name).trim(), ts, ts, ws)
       writeMembers(id, list)
     })
     emitTeams(ws)
@@ -543,22 +544,14 @@ export function createStore(db, { roster: rosterOpt = null } = {}) {
     if (!t) throw new AppError('not_found', 'No existe ese equipo', 404)
     inTx(() => {
       db.prepare('DELETE FROM teams WHERE id = ?').run(id)
-      if (t.active) { // si era el activo, el más antiguo que quede toma su lugar
-        const next = db.prepare('SELECT id FROM teams WHERE workspace_id = ? ORDER BY created_at LIMIT 1').get(t.workspace_id)
-        if (next) db.prepare('UPDATE teams SET active = 1 WHERE id = ?').run(next.id)
-      }
     })
     emitTeams(t.workspace_id)
   }
+  // Compatibilidad: antes había un equipo «activo». Ya no: todos están disponibles; responde el equipo sin cambiar nada.
   function activateTeam(id, ws = null) {
     const t = getTeam(id, ws)
     if (!t) throw new AppError('not_found', 'No existe ese equipo', 404)
-    inTx(() => {
-      db.prepare('UPDATE teams SET active = 0 WHERE workspace_id = ?').run(t.workspace_id) // sólo los equipos de este workspace
-      db.prepare('UPDATE teams SET active = 1, updated_at = ? WHERE id = ?').run(now(), id)
-    })
-    emitTeams(t.workspace_id)
-    return getTeam(id)
+    return t
   }
 
   // ── Agentes del sistema (Assistant, id `coo`): siempre presentes, con nombre, avatar, contexto y sesión propios ──
@@ -582,14 +575,14 @@ export function createStore(db, { roster: rosterOpt = null } = {}) {
 
   // ── Roster global (todos los agentes instalados) + campos del workspace ──
   const clip = (s, n) => (String(s ?? '').length <= n ? String(s ?? '') : String(s).slice(0, n - 1).trimEnd() + '…')
-  // in_active_team / working_now / open_tasks salen del workspace; el catálogo en sí es global. El COO siempre está presente.
+  // in_team / working_now / open_tasks salen del workspace; el catálogo en sí es global. El COO siempre está presente.
   function rosterState(ws) {
-    // Una empresa usa varios equipos a la vez (marketing, ventas, finanzas…): «in_active_team» = está en alguno de sus equipos.
-    const active = new Set(listTeams(ws).flatMap((t) => t.members.map((m) => m.agent_id)))
+    // Una empresa usa varios equipos a la vez (marketing, ventas, finanzas…): in_team = está en alguno de sus equipos.
+    const inTeam = new Set(listTeams(ws).flatMap((t) => t.members.map((m) => m.agent_id)))
     const working = new Set(listSessions(ws).filter((s) => s.status === 'working').map((s) => agentKey(s.agent)))
     const open = {}
     for (const t of listTasks(ws)) if (t.status !== 'done' && t.agent) open[agentKey(t.agent)] = (open[agentKey(t.agent)] ?? 0) + 1
-    return (id) => ({ in_active_team: id === 'coo' || active.has(id), working_now: working.has(id), open_tasks: open[id] ?? 0 })
+    return (id) => ({ in_team: id === 'coo' || inTeam.has(id), working_now: working.has(id), open_tasks: open[id] ?? 0 })
   }
   function getRoster({ plugin = null, agent = null } = {}, ws = DEFAULT_WS) {
     needWorkspace(ws)
@@ -616,7 +609,7 @@ export function createStore(db, { roster: rosterOpt = null } = {}) {
     const st = rosterState(ws)
     const plugins = roster.plugins.map((p) => ({ id: p.id, description: clip(p.description, 160), agents: p.agents.map((a) => ({ id: a.id, description: clip(a.description, 160), model: a.model, ...st(a.id) })), skills_count: p.skills.length }))
     const agents = plugins.flatMap((p) => p.agents)
-    return { plugins, totals: { plugins: plugins.length, agents: agents.length, skills: roster.plugins.reduce((n, p) => n + p.skills.length, 0) }, not_in_active_team: agents.filter((a) => !a.in_active_team).map((a) => a.id) }
+    return { plugins, totals: { plugins: plugins.length, agents: agents.length, skills: roster.plugins.reduce((n, p) => n + p.skills.length, 0) }, not_in_team: agents.filter((a) => !a.in_team).map((a) => a.id) }
   }
 
   const STATUS_WEIGHT = { waiting: 4, working: 3, error: 2, idle: 1, offline: 0 }
@@ -630,7 +623,6 @@ export function createStore(db, { roster: rosterOpt = null } = {}) {
     const teams = listTeams(ws).map((t) => ({
       id: t.id,
       name: t.name,
-      active: t.active,
       members: t.members.map((m) => {
         const s = bestFor(m.agent_id)
         return {
@@ -650,7 +642,6 @@ export function createStore(db, { roster: rosterOpt = null } = {}) {
       now: now(),
       workspace: { id: wsRow.id, name: wsRow.name },
       coo: { display_name: coo.display_name || 'Assistant' },
-      active_team: teams.find((t) => t.active) ? { id: teams.find((t) => t.active).id, name: teams.find((t) => t.active).name } : null,
       teams,
       tasks: counts,
       leads: leadCounts(ws),
@@ -732,8 +723,7 @@ export function createStore(db, { roster: rosterOpt = null } = {}) {
         id: w.id,
         name: w.name,
         root: w.root,
-        teams: teams.map((t) => ({ id: t.id, name: t.name, active: !!t.active, members: t.members.map((m) => (m.display_name ? `${m.display_name} (${m.agent_id})` : m.agent_id)) })),
-        active_team: teams.find((t) => t.active)?.name ?? null,
+        teams: teams.map((t) => ({ id: t.id, name: t.name, members: t.members.map((m) => (m.display_name ? `${m.display_name} (${m.agent_id})` : m.agent_id)) })),
         leads: leadCounts(w.id),
         tasks: { open: tasks.length - c.done - c.cancelled, review: c.review, blocked: c.blocked, doing: c.doing, todo: c.todo, backlog: c.backlog },
         agents_waiting: [...new Set(waiting)],
@@ -741,17 +731,17 @@ export function createStore(db, { roster: rosterOpt = null } = {}) {
     })
   }
 
-  // El COO recibe contexto siempre (haya o no equipo activo): quién es, TODOS los proyectos y lo que la persona le escribió.
+  // El COO recibe contexto siempre (tenga o no equipos): quién es, TODOS los proyectos y lo que la persona le escribió.
   // `ws` sólo sirve para decirle en qué carpeta/proyecto se abrió esta sesión; no limita lo que ve.
   const COO_PROJECTS_MAX = 12
   function cooContext(ws = DEFAULT_WS) {
     const wsRow = needWorkspace(ws)
     const me = getSystemAgent('coo', ws)
-    const lines = ['## Contexto de Back Office · Assistant', `Eres Assistant, la recepcionista de Back Office (id interno coo)${me.display_name ? `, y la persona te llama ${me.display_name}` : ''}: el puente entre todo el roster, los equipos activos y la persona. Eres una sola Assistant para todos los proyectos de la persona: ves y administras todos. Empieza con backoffice_projects y luego backoffice_overview del proyecto relevante; para trabajar en otro proyecto pasa su id en el argumento \`workspace\` de las herramientas.`]
+    const lines = ['## Contexto de Back Office · Assistant', `Eres Assistant, la recepcionista de Back Office (id interno coo)${me.display_name ? `, y la persona te llama ${me.display_name}` : ''}: el puente entre todo el roster, los equipos y la persona. Eres una sola Assistant para todos los proyectos de la persona: ves y administras todos. Empieza con backoffice_projects y luego backoffice_overview del proyecto relevante; para trabajar en otro proyecto pasa su id en el argumento \`workspace\` de las herramientas.`]
     const projects = projectsSummary()
     lines.push('', `Proyectos (${projects.length}); estás abierta en la carpeta de «${wsRow.name}» (${wsRow.id}), pero no te limita a ese proyecto:`)
     const row = (p) => {
-      const tm = p.teams.length ? p.teams.map((t) => (t.active ? `«${t.name}» (activo: ${clip(t.members.join(', ') || 'sin agentes', 160)})` : `«${t.name}»`)).join(', ') : 'ninguno todavía (se arman en la pestaña Equipos)'
+      const tm = p.teams.length ? p.teams.map((t) => `«${t.name}» (${clip(t.members.join(', ') || 'sin agentes', 160)})`).join(', ') : 'ninguno todavía (se arman en la pestaña Equipos)'
       const wait = p.agents_waiting.length ? `; esperan a la persona: ${p.agents_waiting.join(', ')}` : ''
       return `- «${p.name}» (${p.id})${p.id === wsRow.id ? ' ← carpeta actual' : ''}: equipos ${tm}; tareas abiertas ${p.tasks.open}, en revisión ${p.tasks.review}, bloqueadas ${p.tasks.blocked}${wait}`
     }
@@ -766,7 +756,7 @@ export function createStore(db, { roster: rosterOpt = null } = {}) {
     const { profile: pf } = getProfile(1)
     if (pf.preferred_name || pf.current_focus) lines.push(`Perfil de la persona:${pf.preferred_name ? ` le dices ${pf.preferred_name}.` : ''}${pf.current_focus ? ` Enfoque actual: ${clip(pf.current_focus, 160)}` : ''} (detalle con backoffice_profile_read).`)
     const ro = rosterOverview(ws)
-    lines.push('', `Roster instalado (plugin backoffice): ${ro.totals.agents} agentes en ${ro.totals.plugins} equipos (${ro.totals.skills} skills). Hay agentes que NO están en el equipo activo y también puedes recomendarlos.`,
+    lines.push('', `Roster instalado (plugin backoffice): ${ro.totals.agents} agentes en ${ro.totals.plugins} equipos (${ro.totals.skills} skills). Hay agentes que todavía no están en ningún equipo y también puedes recomendarlos.`,
       'Antes de recomendar a alguien consulta backoffice_overview.roster o backoffice_roster {plugin?, agent?} y lee su descripción; nunca recomiendes un agente sin haberla leído.')
     for (const p of ro.plugins) lines.push(`- ${p.id} (${p.agents.length} agentes: ${p.agents.map((a) => a.id).join(', ')}): ${clip(p.description, 110)}`)
     lines.push('', FILES_NOTE)
@@ -778,10 +768,8 @@ export function createStore(db, { roster: rosterOpt = null } = {}) {
     const key = agentKey(agent)
     if (key === 'coo') return cooContext(ws)
     const wsRow = needWorkspace(ws)
-    // Todos los equipos trabajan a la vez: el agente recibe el contexto de SU equipo (el activo de la oficina si está en
-    // varios). «Activo» solo decide qué equipo sale primero en la oficina.
-    const mine = listTeams(ws).filter((t) => t.members.some((m) => m.agent_id === key))
-    const team = mine.find((t) => t.active) ?? mine[0]
+    // Todos los equipos trabajan a la vez: el agente recibe el contexto de SU equipo (el más antiguo si está en varios).
+    const team = listTeams(ws).find((t) => t.members.some((m) => m.agent_id === key))
     const me = team?.members.find((m) => m.agent_id === key)
     if (!team || !me) return null
     const label = (m) => (m.display_name ? `${m.display_name} (${m.agent_id})` : m.agent_id)

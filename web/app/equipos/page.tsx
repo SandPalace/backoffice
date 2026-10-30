@@ -235,11 +235,11 @@ export default function EquiposPage() {
       setTimeout(() => setCooSaved(false), 2000)
     })
 
-  // Al llegar los equipos del servidor, abre el activo. Después el borrador es de la persona.
+  // Al llegar los equipos del servidor, abre el primero. Después el borrador es de la persona.
   useEffect(() => {
     if (loaded || conn !== 'live' || !ready) return
     setLoaded(true)
-    const t = teams.find((x) => x.active) ?? teams[0]
+    const t = teams[0]
     if (t) setDraft(fromTeam(t))
   }, [teams, conn, loaded, ready])
 
@@ -277,7 +277,6 @@ export default function EquiposPage() {
       await send('DELETE', `/api/teams/${draft.id}`)
       setDraft(blank())
     })
-  const activate = () => run(() => post(`/api/teams/${draft.id}/activate`))
 
   // Selector de agentes por grupo del roster: en línea al crear un equipo, en un modal al editarlo.
   const agentPicker = (
@@ -358,7 +357,6 @@ export default function EquiposPage() {
               className={`flex items-center justify-between gap-2 rounded-sm px-3 py-2 text-left text-sm font-semibold ${!editCoo && draft.id === t.id ? 'bg-blue-soft text-blue' : 'hover:bg-bg'}`}
             >
               <span className="truncate">{t.name}</span>
-              {t.active && <span className="rounded-full bg-teal-soft px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-teal">Activo</span>}
             </button>
           ))}
           <button
@@ -525,12 +523,6 @@ export default function EquiposPage() {
           {error && <div className="card border-red p-3 text-sm text-red" role="alert">{error}</div>}
 
           <div className="flex flex-wrap items-center gap-3">
-            {draft.id && saved && !saved.active && (
-              <button disabled={saving || dirty} onClick={activate} title={dirty ? 'Guarda los cambios primero' : undefined} className="rounded-full border border-line bg-surface px-5 py-2 text-sm font-semibold disabled:opacity-40">
-                Activar en la oficina
-              </button>
-            )}
-            {saved?.active && <span className="text-xs font-semibold text-teal">Este equipo está activo en la oficina</span>}
             {draft.id && (
               <button disabled={saving} onClick={remove} className="ml-auto text-sm font-semibold text-red hover:underline disabled:opacity-40">Borrar equipo</button>
             )}
