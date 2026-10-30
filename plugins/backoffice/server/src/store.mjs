@@ -41,6 +41,10 @@ export function createStore(db, { roster: rosterOpt = null } = {}) {
   const bus = new EventEmitter()
   bus.setMaxListeners(100)
   const now = () => Date.now()
+  // Un Back Office = una empresa: si el instalador guardó su nombre (BACKOFFICE_COMPANY) y el proyecto sigue con el nombre
+  // de fábrica, toma el de la empresa (la etiqueta de arriba a la izquierda en la web).
+  const company = String(process.env.BACKOFFICE_COMPANY ?? '').trim().slice(0, 80)
+  if (company) db.prepare("UPDATE workspaces SET name = ? WHERE id = 'default' AND name IN ('Back Office', 'AgentOS', 'Default')").run(company)
 
   const q = {
     getSession: db.prepare('SELECT * FROM sessions WHERE id = ?'),

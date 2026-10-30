@@ -279,17 +279,28 @@ export default function EquiposPage() {
     })
 
   // Selector de agentes por grupo del roster: en línea al crear un equipo, en un modal al editarlo.
+  // Un renglón por grupo que se despliega; al abrir un equipo se despliegan solo los grupos donde ya tiene agentes.
+  const [openGroups, setOpenGroups] = useState<Set<string>>(new Set())
+  useEffect(() => {
+    setOpenGroups(new Set(ROSTERS.filter((g) => g.agents.some((a) => draft.members.some((m) => m.agent_id === a.id))).map((g) => g.id)))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [draft.id])
+  const toggleGroup = (id: string) => setOpenGroups((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n })
   const agentPicker = (
     <>
       {ROSTERS.filter((g) => !g.system).sort((a, b) => a.name.localeCompare(b.name, 'es', { sensitivity: 'base' })).map((g) => (
-        <div key={g.id} className="flex flex-col gap-2">
-          <div className="flex items-center justify-between gap-2">
-            <div className="text-xs font-semibold text-muted">{g.name}</div>
+        <div key={g.id} className="rounded-sm border border-line">
+          <div className="flex items-center justify-between gap-2 px-3 py-2 hover:bg-bg">
+            <button onClick={() => toggleGroup(g.id)} aria-expanded={openGroups.has(g.id)} className="flex flex-1 items-center gap-2 text-left text-sm font-semibold">
+              <span className={`text-muted transition-transform ${openGroups.has(g.id) ? 'rotate-90' : ''}`}>▸</span>
+              {g.name}
+              <span className="text-xs font-normal text-muted">{g.agents.filter((a) => inTeam.has(a.id)).length}/{g.agents.length}</span>
+            </button>
             {g.agents.some((a) => !inTeam.has(a.id)) && (
               <button onClick={() => addGroup(g.agents.map((a) => a.id))} className="text-xs font-semibold text-blue hover:underline">Agregar todos</button>
             )}
           </div>
-          <div className="grid gap-2 sm:grid-cols-2">
+          {openGroups.has(g.id) && <div className="grid gap-2 px-3 pb-3 sm:grid-cols-2">
             {g.agents.map((a) => {
               const on = inTeam.has(a.id)
               return (
@@ -308,7 +319,7 @@ export default function EquiposPage() {
                 </button>
               )
             })}
-          </div>
+          </div>}
         </div>
       ))}
     </>
@@ -443,7 +454,7 @@ export default function EquiposPage() {
             <div className="card flex flex-col gap-4 p-5">
               <div>
                 <div className="label">Elige los agentes del equipo</div>
-                <p className="mt-1 text-xs text-muted">Marca los agentes que quieres en este equipo. Aparecerán en la oficina cuando lo actives.</p>
+                <p className="mt-1 text-xs text-muted">Despliega un área y marca los agentes que quieres en este equipo. Aparecen en la oficina al guardar.</p>
               </div>
               {agentPicker}
             </div>
