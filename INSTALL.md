@@ -12,10 +12,11 @@ Esta guía es para macOS (Linux es igual). Para Windows, ve a la sección **Wind
 
 ## Paso a paso
 
-1. **Clona el repositorio en Documentos** (abre la app Terminal). Usa exactamente `Documentos/AgentOS`: ahí la buscan la
-   extensión de Claude Desktop y las actualizaciones.
+1. **Clona el repositorio en Documentos** (abre la app Terminal). Usa una carpeta por empresa,
+   `Documentos/<Empresa>-BackOffice` (por ejemplo `Acme-BackOffice`). No uses `Documentos/AgentOS`: ahí vive tu AgentOS
+   viejo, del que traes los datos con `scripts/import-agentos.mjs` (README, «Empieza aquí»).
    ```
-   cd ~/Documents && git clone https://github.com/SandPalace/backoffice.git AgentOS && cd AgentOS
+   cd ~/Documents && git clone https://github.com/SandPalace/backoffice.git Acme-BackOffice && cd Acme-BackOffice
    ```
    Todo lo que Back Office crea (datos, proyectos, logs, usuario y contraseña) se queda **dentro de esa carpeta**
    (`data/` para los datos y `workspaces/` para tus workspaces); no se instala nada en tu sistema (ni comandos globales, ni cambios al PATH). Esas dos carpetas nunca se suben a Git. Lo único fuera de la carpeta: la configuración de Claude, para que encuentre tus agentes.
@@ -119,8 +120,8 @@ Otros comandos: `./bin/backoffice status`, `./bin/backoffice stop`.
 Abre **Claude Desktop → pestaña Code**, elige tu carpeta **Documentos** como proyecto y pega:
 
 > Instálame Back Office en esta computadora. Revisa que tenga Git y Node 22.13 o más nuevo; si falta algo, dime cómo
-> instalarlo y espera. Clona https://github.com/SandPalace/backoffice.git en Documentos/AgentOS (si ya existe, detente y
-> pregúntame). Lee su CLAUDE.md e INSTALL.md, pregúntame el nombre de mi empresa y el usuario y la contraseña de la oficina, corre el instalador
+> instalarlo y espera. Clona https://github.com/SandPalace/backoffice.git en Documentos/<Empresa>-BackOffice (si ya existe,
+> detente y pregúntame; no toques Documentos/AgentOS). Lee su CLAUDE.md e INSTALL.md, pregúntame el nombre de mi empresa y el usuario y la contraseña de la oficina, corre el instalador
 > (Mac: ./install.sh · Windows: .\install.ps1) y pídeme permiso antes de cambiar mi configuración de Claude. Arranca
 > Back Office, haz el chequeo de salud y dime cómo conectar la extensión para Chat y Cowork. Si algo falla dos veces igual,
 > detente y muéstrame el error.
@@ -147,7 +148,7 @@ enseña y te pregunta si lo guardas aparte (`git stash`) o lo conservas. Nunca u
 fuerces el pull.
 
 **¿Tu Back Office está en otra carpeta** (por ejemplo `~/AgentOS-app`, de la versión del 15 de octubre)? Abre Claude en esa
-carpeta y dile **«mueve Back Office a Documentos»**: la detiene, la mueve a `Documentos/AgentOS` (con tus datos), vuelve a
+carpeta y dile **«mueve Back Office a Documentos»**: la detiene, la mueve a `Documentos/<Empresa>-BackOffice` (con tus datos), vuelve a
 correr el instalador para que Claude Code y Claude Desktop apunten a la carpeta nueva y limpia lo viejo preguntándote.
 
 ## Revisar que todo esté bien
@@ -192,8 +193,8 @@ Instalador nativo para Windows 10/11 (PowerShell 5.1, el que ya trae Windows, o 
 2. Clona el repositorio:
    ```
    cd $HOME\Documents
-   git clone https://github.com/SandPalace/backoffice.git AgentOS
-   cd AgentOS
+   git clone https://github.com/SandPalace/backoffice.git Acme-BackOffice
+   cd Acme-BackOffice
    ```
    Igual que en Mac, todo (datos, proyectos, logs) se queda dentro de esa carpeta, en `data\` y `workspaces\`, y no se instala nada en tu sistema. Lo único fuera de la carpeta: la configuración de Claude, para que encuentre tus agentes.
    El repositorio es público: no necesitas iniciar sesión en GitHub.
@@ -217,7 +218,7 @@ Opciones del instalador: `-ResetLogin`, `-NoClaude`, `-NoClaudeCli`, `-NoDesktop
 
 ### Problemas en Windows
 
-- **"backoffice.cmd no se reconoce"**: estás fuera de la carpeta. Haz `cd $HOME\Documents\AgentOS` y corre `.\bin\backoffice.cmd start`.
+- **"backoffice.cmd no se reconoce"**: estás fuera de la carpeta. Haz `cd $HOME\Documents\<Empresa>-BackOffice` y corre `.\bin\backoffice.cmd start`.
 - **"la ejecución de scripts está deshabilitada"**: corre el instalador con `powershell -ExecutionPolicy Bypass -File .\install.ps1`.
 - **Ventana del Firewall / antivirus preguntando por "node"**: elige **Permitir** (solo redes privadas). Back Office solo escucha en 127.0.0.1.
   Si tu antivirus bloquea `npm ci`, agrega una excepción para la carpeta del repo y vuelve a correr el instalador.
