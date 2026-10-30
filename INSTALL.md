@@ -24,6 +24,9 @@ Esta guía es para macOS (Linux es igual). Para Windows, ve a la sección **Wind
    ```
    ./install.sh
    ```
+   Primero te pregunta **el nombre de tu empresa** (Enter para omitirlo): con él tus agentes se instalan como un plugin
+   propio, `backoffice-<empresa>` (por ejemplo `backoffice-acme`), y elige dos puertos libres para esta carpeta (4780/4781 si
+   es tu primer Back Office; 4782/4783, … si ya tienes otro). Los guarda en `data/.env` y te los muestra.
    El instalador también te pregunta si Claude puede usar las herramientas de Back Office sin pedir aprobación; si aceptas,
    además le avisa a Claude dónde está tu carpeta de Back Office (en `~/.claude/settings.json`, con respaldo).
    Si ya tenías Back Office instalado antes (carpetas `~/.agentos` y `~/AgentOS`), no se mueve nada: con el servidor detenido corre
@@ -33,18 +36,79 @@ Esta guía es para macOS (Linux es igual). Para Windows, ve a la sección **Wind
    ```
    ./bin/backoffice start
    ```
-   Se abre el navegador en http://localhost:4781.
+   Se abre el navegador en http://localhost:4781 (o en el puerto que te mostró el instalador).
 4. **Entra** con el usuario y contraseña del paso 2.
-5. **Cierra y abre Claude Desktop** (o tu terminal de Claude Code) para que cargue el plugin `backoffice`.
-6. **Conecta Claude Desktop (Chat y Cowork).** Cowork no usa lo que el instalador registró para Claude Code; se conecta así:
-   - **Extensión (un clic, probada):** Claude Desktop → **Ajustes → Extensiones → Instalar extensión…** → elige
-     `Documentos/AgentOS/dist/backoffice.mcpb`. En «Carpeta de Back Office» deja `Documentos/AgentOS`. Reinicia Claude Desktop.
-   - **O el plugin completo (agentes y skills también):** Claude Desktop → **Personalizar → Plugins → Agregar marketplace** →
-     `SandPalace/backoffice` → instala **backoffice**.
-   - **Prueba:** en una sesión **nueva** de Chat o Cowork pregunta «¿Qué equipos y agentes tengo en Back Office?». Debe usar
-     las herramientas de Back Office (no leer archivos). En la pestaña **Code** de Claude Desktop no hace falta nada más.
-   - Si un agente te dice que no tiene las herramientas de Back Office, no lo dejes «escribir directo en la carpeta»: conecta la
-     extensión y vuelve a preguntar.
+5. **Cierra y abre Claude Desktop** (o tu terminal de Claude Code) para que cargue el plugin (`backoffice-<empresa>`, o
+   `backoffice` si no pusiste empresa).
+6. **Conecta Claude Desktop (Chat y Cowork)**: sigue la sección siguiente. Si un agente te dice que no tiene las herramientas
+   de Back Office, no lo dejes «escribir directo en la carpeta»: conecta el plugin o la extensión y vuelve a preguntar.
+
+## Configurar el plugin y el MCP en Claude Desktop
+
+`<empresa>` es el nombre corto que te mostró el instalador (`./bin/backoffice status` lo repite: «Empresa: Acme (plugin
+backoffice-acme)»). Tu plugin de empresa vive en `dist/company-plugin/` dentro de tu carpeta y se regenera solo en cada
+`./bin/backoffice update`. Si instalaste sin empresa, cambia `backoffice-<empresa>` por `backoffice` en todo lo de abajo.
+
+### A. Claude Code (terminal)
+
+El instalador y `./bin/backoffice update` ya lo registran. Si quieres hacerlo a mano, desde la carpeta de Back Office:
+
+```
+node scripts/build-company-plugin.mjs                     # (re)genera dist/company-plugin
+claude plugin marketplace add "$PWD/dist/company-plugin"
+claude plugin install backoffice-<empresa>@backoffice-<empresa>
+```
+
+(o todo junto y también para actualizar: `node scripts/build-company-plugin.mjs --register`).
+
+Para verificar, abre `claude` en tu carpeta:
+
+1. `/plugin` → en **Installed** aparece `backoffice-<empresa>` activo.
+2. `/mcp` → `plugin:backoffice-<empresa>:backoffice` dice **connected**.
+3. `claude --agent backoffice-<empresa>:ceo` abre al CEO de esa empresa.
+
+Si además ves el plugin genérico `backoffice` (cada agente dos veces: `backoffice:ceo` y `backoffice-<empresa>:ceo`), quítalo
+con `claude plugin uninstall backoffice@backoffice`. El instalador y `update` te lo ofrecen.
+
+### B. Claude Desktop: Chat y Cowork
+
+Cowork no ve lo que se instaló con la terminal: se agrega desde Claude Desktop.
+
+1. **Personalizar → Plugins → Agregar marketplace** → pega la ruta de tu carpeta `…/dist/company-plugin` (por ejemplo
+   `/Users/ana/Documents/Acme-BackOffice/dist/company-plugin`).
+2. Instala **backoffice-<empresa>** (su descripción empieza con «Back Office · <Empresa>»).
+3. Cierra y abre Claude Desktop.
+
+**Respaldo (si el plugin no se puede agregar o Cowork no ve las herramientas):** **Ajustes → Extensiones → Instalar
+extensión…** → elige `dist/backoffice-<empresa>.mcpb` de tu carpeta. Se llama **«Back Office · <Empresa>»** y ya trae tu
+carpeta en «Carpeta de Back Office»: no la cambies. Reinicia Claude Desktop. (Sin empresa: `dist/backoffice.mcpb` y en
+«Carpeta de Back Office» elige tu carpeta; el plugin genérico se agrega con el marketplace `SandPalace/backoffice`.)
+
+**Prueba:** en una sesión **nueva** de Chat o Cowork pregunta «¿Qué equipos tengo?» (o «¿Qué equipos y agentes tengo en Back
+Office?»). Debe contestar usando las herramientas de Back Office (no leyendo archivos) con los equipos de ESA empresa. En la
+pestaña **Code** de Claude Desktop no hace falta nada más que lo de la parte A.
+
+### Cómo distinguir una empresa de otra
+
+| Dónde | Empresa Acme | Empresa Beta |
+| --- | --- | --- |
+| Agentes | `backoffice-acme:ceo`, `backoffice-acme:cmo`, … | `backoffice-beta:ceo`, … |
+| `/mcp` en Claude Code | `plugin:backoffice-acme:backoffice` | `plugin:backoffice-beta:backoffice` |
+| Extensión de Claude Desktop | «Back Office · Acme» | «Back Office · Beta» |
+| Oficina web | http://localhost:4781 | http://localhost:4783 |
+
+## Varias empresas
+
+**Una carpeta + un plugin + un par de puertos por empresa.** Para la segunda empresa clona otra vez en su propia carpeta
+(`cd ~/Documents && git clone https://github.com/SandPalace/backoffice.git Beta-BackOffice`), corre `./install.sh` ahí y
+escribe su nombre: el instalador ve que el 4780/4781 ya es de tu otro Back Office y le da el siguiente par libre.
+
+- Puedes tener **varias encendidas a la vez**: `./bin/backoffice start` en cada carpeta; cada oficina abre en su puerto.
+- Los agentes de cada plugin escriben **solo** en el Back Office de su empresa (su plugin trae la carpeta y el puerto).
+- Claude carga todos tus plugins en todas las sesiones: elige el agente por su nombre (`backoffice-acme:ceo`) y abre las
+  sesiones de cada empresa dentro de su carpeta.
+- Para cambiar los puertos de una carpeta edita `BACKOFFICE_PORT` y `BACKOFFICE_WEB_PORT` en su `data/.env` y corre
+  `./bin/backoffice update` (recompila la web y regenera su plugin).
 
 Otros comandos: `./bin/backoffice status`, `./bin/backoffice stop`.
 
@@ -56,7 +120,7 @@ Abre **Claude Desktop → pestaña Code**, elige tu carpeta **Documentos** como 
 
 > Instálame Back Office en esta computadora. Revisa que tenga Git y Node 22.13 o más nuevo; si falta algo, dime cómo
 > instalarlo y espera. Clona https://github.com/SandPalace/backoffice.git en Documentos/AgentOS (si ya existe, detente y
-> pregúntame). Lee su CLAUDE.md e INSTALL.md, pregúntame el usuario y la contraseña de la oficina, corre el instalador
+> pregúntame). Lee su CLAUDE.md e INSTALL.md, pregúntame el nombre de mi empresa y el usuario y la contraseña de la oficina, corre el instalador
 > (Mac: ./install.sh · Windows: .\install.ps1) y pídeme permiso antes de cambiar mi configuración de Claude. Arranca
 > Back Office, haz el chequeo de salud y dime cómo conectar la extensión para Chat y Cowork. Si algo falla dos veces igual,
 > detente y muéstrame el error.
@@ -71,7 +135,8 @@ Desde la carpeta de Back Office:
 ./bin/backoffice update
 ```
 
-Descarga la versión nueva, recompila y actualiza el plugin `backoffice` (si tenías la versión de 7 plugins, los quita y deja
+Descarga la versión nueva, recompila y actualiza tu plugin (`backoffice-<empresa>`, que se regenera con tu carpeta y tus
+puertos; o `backoffice` sin empresa) (si tenías la versión de 7 plugins, los quita y deja
 uno solo; también corrige el permiso de Claude y Claude Desktop). Después reinicia Claude. Puedes repetirlo sin riesgo.
 
 **Tu trabajo está a salvo al actualizar.** Todo lo que creas vive en `data/` (base de datos, archivos, entregas, tu
@@ -88,26 +153,26 @@ correr el instalador para que Claude Code y Claude Desktop apunten a la carpeta 
 ## Revisar que todo esté bien
 
 ```
-./bin/backoffice status                                   # Servidor: corriendo (4780) · Oficina web: corriendo (4781)
-curl -s http://localhost:4780/api/auth/status          # {"enabled":true,"configured":true,...}
-claude plugin list                                     # backoffice@backoffice  ✔ enabled  (y ningún otro @backoffice)
+./bin/backoffice status                                   # Servidor: corriendo (4780) · Oficina web: corriendo (4781) · Empresa: …
+curl -s http://localhost:4780/api/auth/status          # {"enabled":true,"configured":true,...}  (usa tu puerto si no es 4780)
+claude plugin list                                     # backoffice-<empresa>@backoffice-<empresa> ✔ enabled (sin empresa: backoffice@backoffice)
 ```
 
-En Claude Desktop: Ajustes → Extensiones muestra **Back Office** activa, y en Chat o Cowork «¿Qué equipos y agentes tengo en
+En Claude Desktop: Personalizar → Plugins muestra **backoffice-<empresa>** (o Ajustes → Extensiones, **Back Office · <Empresa>**), y en Chat o Cowork «¿Qué equipos y agentes tengo en
 Back Office?» responde con tus equipos.
 
 ¿Algo raro? Abre Claude en la carpeta de Back Office y dile **«revisa y repara mi Back Office»**: sigue el manual de `CLAUDE.md`.
 
 ## Problemas comunes
 
-- **"El puerto está ocupado"**: otro programa usa el 4780 o el 4781. Corre `./bin/backoffice stop`; si sigue, usa otros puertos:
-  `BACKOFFICE_PORT=4790 BACKOFFICE_WEB_PORT=4791 ./bin/backoffice start` (instala con las mismas variables si cambias el 4780).
+- **"El puerto está ocupado"**: otro programa (u otro Back Office) usa tus puertos. Corre `./bin/backoffice stop`; si sigue,
+  cambia `BACKOFFICE_PORT` y `BACKOFFICE_WEB_PORT` en `data/.env` (por ejemplo 4790 y 4791) y corre `./bin/backoffice update`.
 - **"Node muy viejo"**: instala Node 24 LTS desde https://nodejs.org, abre una Terminal nueva y corre `./install.sh` otra vez.
 - **Olvidé mi contraseña**: abre `data/.env` dentro de la carpeta de Back Office con cualquier editor (`open -e data/.env`), cambia `BACKOFFICE_PASSWORD=...`
   y guarda. No hace falta reiniciar. O corre `./install.sh --reset-login`.
 - **No encuentra `claude`**: instala Claude Code (`curl -fsSL https://claude.ai/install.sh | bash`) y corre `./install.sh` de nuevo.
 - **La web se ve rota (errores 400 o en blanco) después de actualizar**: `./bin/backoffice stop`, `(cd web && node node_modules/next/dist/bin/next build)` y `./bin/backoffice start`.
-- **Siguen apareciendo los plugins viejos o falta `backoffice@backoffice`**: `node scripts/migrate-plugins.mjs` y reinicia Claude.
+- **Siguen apareciendo los plugins viejos o falta tu plugin** (`backoffice-<empresa>` o `backoffice@backoffice`): `node scripts/migrate-plugins.mjs` y reinicia Claude.
 - **Logs**: `data/logs/` (dentro de la carpeta de Back Office).
 
 ## Windows
@@ -136,15 +201,16 @@ Instalador nativo para Windows 10/11 (PowerShell 5.1, el que ya trae Windows, o 
    ```
    powershell -ExecutionPolicy Bypass -File .\install.ps1
    ```
-   Te pedirá un **usuario y contraseña** para tu oficina (al escribir la contraseña no verás nada: es normal) y
-   te preguntará si Claude puede usar las herramientas de Back Office sin pedir aprobación.
+   Te pedirá el **nombre de tu empresa** (elige los puertos y tu plugin `backoffice-<empresa>`), un **usuario y contraseña**
+   para tu oficina (al escribir la contraseña no verás nada: es normal) y te preguntará si Claude puede usar las
+   herramientas de Back Office sin pedir aprobación.
 4. Arranca desde la carpeta de Back Office:
    ```
    .\bin\backoffice.cmd start
    ```
-   Se abre el navegador en http://localhost:4781. Otros comandos: `.\bin\backoffice.cmd status`, `stop`, `update`.
-5. Reinicia Claude Desktop y conecta Chat y Cowork igual que en Mac (paso 6): Ajustes → Extensiones → Instalar
-   extensión… → `Documentos\AgentOS\dist\backoffice.mcpb`, o Personalizar → Plugins → `SandPalace/backoffice`.
+   Se abre el navegador en http://localhost:4781 (o el puerto que te mostró el instalador). Otros comandos: `.\bin\backoffice.cmd status`, `stop`, `update`.
+5. Reinicia Claude Desktop y conecta Chat y Cowork igual que en Mac: sección «Configurar el plugin y el MCP en Claude
+   Desktop» (`dist\company-plugin` o `dist\backoffice-<empresa>.mcpb`).
 
 Opciones del instalador: `-ResetLogin`, `-NoClaude`, `-NoClaudeCli`, `-NoDesktop`, `-NoSettings`
 (ej. `powershell -ExecutionPolicy Bypass -File .\install.ps1 -ResetLogin`).
@@ -155,7 +221,7 @@ Opciones del instalador: `-ResetLogin`, `-NoClaude`, `-NoClaudeCli`, `-NoDesktop
 - **"la ejecución de scripts está deshabilitada"**: corre el instalador con `powershell -ExecutionPolicy Bypass -File .\install.ps1`.
 - **Ventana del Firewall / antivirus preguntando por "node"**: elige **Permitir** (solo redes privadas). Back Office solo escucha en 127.0.0.1.
   Si tu antivirus bloquea `npm ci`, agrega una excepción para la carpeta del repo y vuelve a correr el instalador.
-- **Puerto ocupado**: `.\bin\backoffice.cmd stop`; si sigue, `$env:BACKOFFICE_PORT=4790; $env:BACKOFFICE_WEB_PORT=4791; .\bin\backoffice.cmd start`.
+- **Puerto ocupado**: `.\bin\backoffice.cmd stop`; si sigue, cambia `BACKOFFICE_PORT` y `BACKOFFICE_WEB_PORT` en `data\.env` y corre `.\bin\backoffice.cmd update`.
 - **Olvidé mi contraseña**: edita `data\.env` dentro de la carpeta de Back Office (`notepad data\.env`) o corre el instalador con `-ResetLogin`.
 - **Logs**: `data\logs\` dentro de la carpeta de Back Office (`server.err.log`, `web.err.log`).
 

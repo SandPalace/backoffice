@@ -6,7 +6,7 @@ import { useOfficeView } from '@/lib/officeViewContext'
 const TABS = [
   { href: '/', label: 'Inicio' },
   { href: '/tareas', label: 'Tareas' },
-  { href: '/canvas', label: 'Canvas' },
+  { href: '/canvas', label: 'Boards' },
   { href: '/leads', label: 'Leads' },
   { href: '/equipos', label: 'Equipos' },
   { href: '/archivos', label: 'Archivos' },

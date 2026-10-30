@@ -6,13 +6,15 @@ import { SERVER, getCurrentWorkspace, post } from '@/lib/useBackOffice'
 import { archivosHref, deliveryFolder, formatSize, outputFileUrl, previewKind, safeLink, storageBadge } from '@/lib/files'
 import { OutputViewer } from './FileViewer'
 
-const ORDER: TaskStatus[] = ['review', 'blocked', 'doing', 'todo', 'done']
+const ORDER: TaskStatus[] = ['review', 'blocked', 'doing', 'todo', 'backlog', 'done', 'cancelled']
 const TITLE: Record<TaskStatus, string> = {
   review: 'Revisión',
   blocked: 'Atoradas',
   doing: 'En curso',
   todo: 'Por hacer',
   done: 'Aprobadas',
+  backlog: 'Backlog',
+  cancelled: 'Canceladas',
 }
 const PILL: Record<TaskStatus, string> = {
   review: 'bg-amber-soft text-amber',
@@ -20,6 +22,8 @@ const PILL: Record<TaskStatus, string> = {
   doing: 'bg-blue-soft text-blue',
   todo: 'bg-bg text-muted',
   done: 'bg-teal-soft text-teal',
+  backlog: 'bg-bg text-muted',
+  cancelled: 'bg-bg text-muted line-through',
 }
 
 const base = (p: string | null) => (p ?? '').split('/').filter(Boolean).pop() ?? p ?? ''

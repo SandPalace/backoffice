@@ -3,7 +3,7 @@
 // (<folder>/plugins/backoffice/server/src/mcp.mjs), so `./bin/backoffice update` updates it too: the extension never goes stale.
 // The folder comes from the extension setting `backoffice_folder` (env BACKOFFICE_DIR). Zero dependencies.
 // If the folder is wrong or too old, it still answers MCP with a clear Spanish message (never a silent failure).
-import { existsSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { createInterface } from 'node:readline'
@@ -11,6 +11,17 @@ import { createInterface } from 'node:readline'
 // AGENTOS_DIR: rename compat (one release). A folder not updated yet still has plugins/agentos.
 const dir = String(process.env.BACKOFFICE_DIR || process.env.AGENTOS_DIR || '').trim()
 const mcp = dir && [join(dir, 'plugins', 'backoffice', 'server', 'src', 'mcp.mjs'), join(dir, 'plugins', 'agentos', 'server', 'src', 'mcp.mjs')].find((f) => existsSync(f))
+
+// Several Back Offices on one machine (one per company) run on different ports, saved in each folder's data/.env:
+// the folder decides (it wins over any inherited value), so this extension talks to the server of the folder it points to.
+if (dir) {
+  try {
+    for (const line of readFileSync(join(dir, 'data', '.env'), 'utf8').split(/\r?\n/)) {
+      const m = line.trim().match(/^(?:export\s+)?(BACKOFFICE_PORT|BACKOFFICE_WEB_PORT)\s*=\s*["']?(\d{2,5})["']?\s*$/)
+      if (m) process.env[m[1]] = m[2]
+    }
+  } catch { /* no data/.env: default ports */ }
+}
 
 let problem = null
 if (!mcp) {

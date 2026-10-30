@@ -1,17 +1,19 @@
 'use client'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import type { Output, Task, TaskStatus } from '@/lib/types'
+import type { Output, Sprint, Task, TaskStatus } from '@/lib/types'
 import { post, send, useBackOffice } from '@/lib/useBackOffice'
 import { ROSTER_AGENTS } from '@/lib/roster'
 import { Delivery } from './TaskBoard'
 import { OutputViewer } from './FileViewer'
 
 const COLUMNS: { status: TaskStatus; title: string; hint: string; dot: string }[] = [
+  { status: 'backlog', title: 'Backlog', hint: 'Planeadas, todavía no listas', dot: 'bg-line' },
   { status: 'todo', title: 'Por hacer', hint: 'Esperan a un agente', dot: 'bg-muted' },
   { status: 'doing', title: 'En curso', hint: 'Un agente trabaja en ellas', dot: 'bg-blue' },
   { status: 'blocked', title: 'Atoradas', hint: 'Necesitan una respuesta tuya', dot: 'bg-red' },
   { status: 'review', title: 'Revisión', hint: 'Aprueba o pide cambios', dot: 'bg-amber' },
   { status: 'done', title: 'Aprobadas', hint: 'Ya revisaste estas', dot: 'bg-teal' },
+  { status: 'cancelled', title: 'Canceladas', hint: 'Sólo tú cancelas una tarea', dot: 'bg-muted' },
 ]
 
 const ago = (ts: number) => {
@@ -23,7 +25,7 @@ const ago = (ts: number) => {
   return `hace ${Math.round(h / 24)} d`
 }
 
-function TaskMenu({ t, busy, projects, onMove, onMoveProject, onDelete, onOpenChange }: { t: Task; busy: boolean; projects: { id: string; name: string }[]; onMove: (s: TaskStatus) => void; onMoveProject: (id: string) => void; onDelete: () => void; onOpenChange?: (open: boolean) => void }) {
+function TaskMenu({ t, busy, projects, sprints, onMove, onMoveProject, onSprint, onDelete, onOpenChange }: { t: Task; busy: boolean; projects: { id: string; name: string }[]; sprints: Sprint[]; onMove: (s: TaskStatus) => void; onMoveProject: (id: string) => void; onSprint: (id: string | null) => void; onDelete: () => void; onOpenChange?: (open: boolean) => void }) {
   const [pos, setPos] = useState<{ x: number; y: number } | null>(null)
   useEffect(() => { onOpenChange?.(pos !== null) }, [pos]) // eslint-disable-line react-hooks/exhaustive-deps
   const btn = useRef<HTMLButtonElement>(null)
@@ -79,6 +81,18 @@ function TaskMenu({ t, busy, projects, onMove, onMoveProject, onDelete, onOpenCh
               <span className={`mr-2 inline-block h-2 w-2 rounded-full ${c.dot}`} aria-hidden="true" />{c.title}
             </button>
           ))}
+          {sprints.length > 0 && (
+            <>
+              <div role="separator" className="my-1 border-t border-line" />
+              <div className="label px-3 pb-1 pt-1 !text-[10px]" aria-hidden="true">Sprint</div>
+              <div role="group" aria-label="Sprint" className="max-h-36 overflow-y-auto">
+                {t.sprint_id && <button role="menuitem" tabIndex={-1} className={item} onClick={() => { close(false); onSprint(null) }}>Sin sprint</button>}
+                {sprints.filter((sp) => sp.id !== t.sprint_id).map((sp) => (
+                  <button key={sp.id} role="menuitem" tabIndex={-1} className={`${item} truncate`} title={sp.name} onClick={() => { close(false); onSprint(sp.id) }}>{sp.name}{sp.status === 'active' ? ' · activo' : ''}</button>
+                ))}
+              </div>
+            </>
+          )}
           {projects.length > 0 && (
             <>
               <div role="separator" className="my-1 border-t border-line" />
@@ -148,7 +162,7 @@ function NewTaskForm({ status, title, onDone, onError }: { status: TaskStatus; t
   )
 }
 
-function Card({ t, projects, onPreview, onApprove, onMove, onMoveProject, onDelete, busy, dragLocked, dragging, onDragStart, onDragEnd }: { t: Task; onPreview: (o: Output) => void; onApprove: (t: Task) => void; onMove: (t: Task, s: TaskStatus) => void; onMoveProject: (t: Task, id: string) => void; onDelete: (t: Task) => void; projects: { id: string; name: string }[]; busy: boolean; dragLocked: boolean; dragging: boolean; onDragStart: (t: Task) => void; onDragEnd: () => void }) {
+function Card({ t, projects, sprints, storyTitle, onPreview, onApprove, onMove, onMoveProject, onSprint, onDelete, busy, dragLocked, dragging, onDragStart, onDragEnd }: { t: Task; onPreview: (o: Output) => void; onApprove: (t: Task) => void; onMove: (t: Task, s: TaskStatus) => void; onMoveProject: (t: Task, id: string) => void; onSprint: (t: Task, id: string | null) => void; onDelete: (t: Task) => void; projects: { id: string; name: string }[]; sprints: Sprint[]; storyTitle: string | null; busy: boolean; dragLocked: boolean; dragging: boolean; onDragStart: (t: Task) => void; onDragEnd: () => void }) {
   const [menuOpen, setMenuOpen] = useState(false)
   const fromControl = useRef(false)
   const canDrag = !menuOpen && !busy && !dragLocked
@@ -169,8 +183,9 @@ function Card({ t, projects, onPreview, onApprove, onMove, onMoveProject, onDele
     >
       <div className="flex items-start justify-between gap-2">
         <div className="text-sm font-semibold leading-snug">{t.title}</div>
-        <TaskMenu t={t} busy={busy} projects={projects} onOpenChange={setMenuOpen} onMove={(st) => onMove(t, st)} onMoveProject={(id) => onMoveProject(t, id)} onDelete={() => onDelete(t)} />
+        <TaskMenu t={t} busy={busy} projects={projects} sprints={sprints} onOpenChange={setMenuOpen} onMove={(st) => onMove(t, st)} onMoveProject={(id) => onMoveProject(t, id)} onSprint={(id) => onSprint(t, id)} onDelete={() => onDelete(t)} />
       </div>
+      {storyTitle && <div className="mt-1 truncate text-[11px] text-muted" title={`Historia: ${storyTitle}`}>↳ {storyTitle}</div>}
       <div className="mt-1 flex items-center justify-between gap-2 text-xs text-muted">
         <span className="truncate">{t.agent ?? 'Sin agente'}</span>
         <span className="flex-none">{ago(t.updated_at)}</span>
@@ -182,7 +197,16 @@ function Card({ t, projects, onPreview, onApprove, onMove, onMoveProject, onDele
           <ul className="flex flex-col gap-1">{t.outputs.map((o) => <Delivery key={o.id} o={o} onPreview={onPreview} />)}</ul>
         </div>
       )}
-      {t.status === 'review' && (
+      {t.cancel_proposal && (t.status === 'review' || t.status === 'cancelled') && (
+        <p className="mt-2 rounded-sm bg-amber-soft px-2 py-1.5 text-xs text-amber">{t.status === 'review' ? 'Propone cancelarla: ' : 'Motivo: '}{t.cancel_proposal}</p>
+      )}
+      {t.status === 'review' && t.cancel_proposal && (
+        <div className="mt-3 flex flex-col gap-1.5">
+          <button className="w-full rounded-full bg-ink px-3 py-2 text-xs font-semibold text-bg hover:opacity-90 disabled:opacity-50" disabled={busy} onClick={() => onMove(t, 'cancelled')}>Cancelar tarea</button>
+          <button className="w-full rounded-full border border-line px-3 py-1.5 text-xs font-semibold hover:bg-bg disabled:opacity-50" disabled={busy} onClick={() => onMove(t, 'todo')}>Seguir con ella</button>
+        </div>
+      )}
+      {t.status === 'review' && !t.cancel_proposal && (
         <button
           className="mt-3 w-full rounded-full bg-blue px-4 py-2 text-xs font-semibold text-white hover:opacity-90 disabled:opacity-50"
           disabled={busy}
@@ -196,7 +220,12 @@ function Card({ t, projects, onPreview, onApprove, onMove, onMoveProject, onDele
 }
 
 export default function KanbanBoard({ tasks }: { tasks: Task[] }) {
-  const { workspaces, workspaceId } = useBackOffice()
+  const { workspaces, workspaceId, stories, sprints: allSprints } = useBackOffice()
+  const storyTitle = useMemo(() => new Map(stories.map((s) => [s.id, s.title])), [stories])
+  const sprints = useMemo(() => allSprints.filter((s) => s.status !== 'completed'), [allSprints])
+  const [showCancelled, setShowCancelled] = useState(false)
+  const cancelledCount = tasks.filter((t) => t.status === 'cancelled').length
+  const columns = showCancelled ? COLUMNS : COLUMNS.filter((c) => c.status !== 'cancelled')
   // Mismo orden que el selector de proyectos: «personal» primero, luego alfabético.
   const projects = useMemo(() => {
     const pinned = (w: { id: string }) => (w.id === 'personal' ? 0 : 1)
@@ -223,7 +252,8 @@ export default function KanbanBoard({ tasks }: { tasks: Task[] }) {
   }
   const approve = (t: Task) => run(t.id, () => post(`/api/human/tasks/${t.id}/approve`, { by: 'tú' }))
   const move = (t: Task, status: TaskStatus) =>
-    run(t.id, () => (status === 'done' && t.status === 'review' ? post(`/api/human/tasks/${t.id}/approve`, { by: 'tú' }) : send('PATCH', `/api/human/tasks/${t.id}`, { status })))
+    run(t.id, () => (status === 'done' && t.status === 'review' && !t.cancel_proposal ? post(`/api/human/tasks/${t.id}/approve`, { by: 'tú' }) : send('PATCH', `/api/human/tasks/${t.id}`, { status })))
+  const setSprint = (t: Task, sprint_id: string | null) => run(t.id, () => send('PATCH', `/api/human/tasks/${t.id}`, { sprint_id }))
   const moveProject = (t: Task, to: string) => {
     const name = projects.find((p) => p.id === to)?.name ?? to
     if (!window.confirm(`¿Mover «${t.title}» a «${name}»? Sus entregables se van con ella.`)) return
@@ -239,8 +269,13 @@ export default function KanbanBoard({ tasks }: { tasks: Task[] }) {
       {tasks.length === 0 && (
         <div role="status" className="card mb-4 p-5 text-sm text-muted">Todavía no hay tareas. Aparecen cuando un agente las crea con el MCP de Back Office, o crea una con el botón + de una columna.</div>
       )}
-      <div className="grid auto-cols-[minmax(260px,1fr)] grid-flow-col gap-3 overflow-x-auto pb-2 lg:grid-flow-row lg:grid-cols-5 lg:overflow-visible">
-        {COLUMNS.map((c) => {
+      <div className="mb-2 flex justify-end">
+        <button type="button" aria-pressed={showCancelled} onClick={() => setShowCancelled((v) => !v)} className="rounded-full border border-line px-3 py-1 text-[11px] font-semibold text-muted hover:text-ink">
+          {showCancelled ? 'Ocultar canceladas' : `Ver canceladas (${cancelledCount})`}
+        </button>
+      </div>
+      <div className={`grid auto-cols-[minmax(240px,1fr)] grid-flow-col gap-3 overflow-x-auto pb-2 xl:grid-flow-row xl:overflow-visible ${showCancelled ? 'xl:grid-cols-7' : 'xl:grid-cols-6'}`}>
+        {columns.map((c) => {
           const list = tasks.filter((t) => t.status === c.status).sort((a, b) => b.updated_at - a.updated_at)
           return (
             <div
@@ -275,7 +310,7 @@ export default function KanbanBoard({ tasks }: { tasks: Task[] }) {
                 <p className="px-1 py-3 text-xs text-muted">{c.hint}</p>
               ) : (
                 <ul className="flex flex-col gap-2">
-                  {list.map((t) => <Card key={t.id} t={t} projects={projects} onMoveProject={moveProject} onPreview={setViewing} onApprove={approve} onMove={move} onDelete={remove} busy={busyId === t.id} dragLocked={adding !== null} dragging={drag?.id === t.id} onDragStart={setDrag} onDragEnd={endDrag} />)}
+                  {list.map((t) => <Card key={t.id} t={t} projects={projects} sprints={sprints} storyTitle={t.story_id ? storyTitle.get(t.story_id) ?? null : null} onSprint={setSprint} onMoveProject={moveProject} onPreview={setViewing} onApprove={approve} onMove={move} onDelete={remove} busy={busyId === t.id} dragLocked={adding !== null} dragging={drag?.id === t.id} onDragStart={setDrag} onDragEnd={endDrag} />)}
                 </ul>
               )}
             </div>

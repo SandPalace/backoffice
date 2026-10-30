@@ -1,6 +1,6 @@
-# Canvas ideas · finance-team
+# Boards ideas · finance-team
 
-Artifacts this team can publish to the Canvas with `backoffice_artifact_publish`. Titles are Spanish patterns
+Artifacts this team can publish to the Boards with `backoffice_artifact_publish`. Titles are Spanish patterns
 (`<mes>`, `<periodo>`, `<proyecto>` are placeholders filled with real values). Templates come from the core skill
 `backoffice:canvas-artifacts`. Scope: `team` for the Team board, `agent` for each agent's own board, `workspace`
 only when the person asked for a project-level view. Personal finance never goes on the team or workspace board.

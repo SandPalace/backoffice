@@ -76,7 +76,7 @@ leave in place meanwhile. You do not invent another route or retry in a loop.
 - A piece with a pending question: task `blocked` with the question in the description and `backoffice_checkin`
   `waiting`.
 - At the start, if you did not receive team context, request it with `backoffice_team_context` (`cmo`).
-- Canvas: before publishing an artifact, use the skill `backoffice:canvas-artifacts` and pick an idea from this team's `teams/marketing-team/canvas-ideas.md` (at the root of the `backoffice` plugin, next to `agents/`).
+- Boards: before publishing an artifact, use the skill `backoffice:canvas-artifacts` and pick an idea from this team's `teams/marketing-team/canvas-ideas.md` (at the root of the `backoffice` plugin, next to `agents/`).
 - Everything that goes out into the world (a post, an ad, a message, a payment) is a **draft** that the
   person reviews and executes; you do not send it.
 

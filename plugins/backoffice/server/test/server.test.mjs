@@ -33,7 +33,7 @@ test('stateFromEvent traduce hooks a estados', () => {
 test('un hook crea la sesión y cambia su estado', async () => {
   const { app, call } = await boot()
   const sid = 's-1'
-  await call('POST', '/hooks/SessionStart', { session_id: sid, cwd: '/Users/x/inmobiliaria' })
+  await call('POST', '/hooks/SessionStart', { session_id: sid, cwd: '/Users/x/inmobiliaria', backoffice_workspace: 'default' })
   let { body } = await call('GET', '/api/sessions')
   assert.equal(body[0].status, 'idle')
   assert.equal(body[0].project, 'inmobiliaria')
@@ -56,7 +56,7 @@ test('un subagente se enciende en su escritorio y el padre conserva su identidad
   const sid = 'e5b05f30'
   const sub = { session_id: sid, cwd: '/x/e2e', agent_id: 'a2258a0b', agent_type: 'backoffice:researcher' }
   const get = async (id) => (await call('GET', '/api/sessions')).body.find((s) => s.id === id)
-  await call('POST', '/hooks/SessionStart', { session_id: sid, cwd: '/x/e2e', source: 'startup' })
+  await call('POST', '/hooks/SessionStart', { session_id: sid, cwd: '/x/e2e', source: 'startup', backoffice_workspace: 'default' })
   await call('POST', '/hooks/UserPromptSubmit', { session_id: sid, cwd: '/x/e2e' })
   await call('POST', '/hooks/PreToolUse', { session_id: sid, cwd: '/x/e2e', tool_name: 'Agent' })
   await call('POST', '/hooks/SubagentStart', sub)
@@ -154,7 +154,7 @@ test('SSE entrega un snapshot y los cambios', async () => {
     while (!buf.includes(until)) buf += dec.decode((await reader.read()).value)
   }
   await read('event: snapshot')
-  await call('POST', '/hooks/UserPromptSubmit', { session_id: 'live', cwd: '/x/y' })
+  await call('POST', '/hooks/UserPromptSubmit', { session_id: 'live', cwd: '/x/y', agent_type: 'backoffice:cmo' })
   await read('event: session')
   assert.match(buf, /"status":"working"/)
   await reader.cancel()

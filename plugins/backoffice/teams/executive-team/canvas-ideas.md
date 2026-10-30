@@ -1,6 +1,6 @@
-# Canvas ideas · executive-team
+# Boards ideas · executive-team
 
-Artifacts this team can publish to the Canvas with `backoffice_artifact_publish`. Titles are Spanish patterns
+Artifacts this team can publish to the Boards with `backoffice_artifact_publish`. Titles are Spanish patterns
 (`<periodo>`, `<tema>`, `<fecha>` are placeholders filled with real values). Templates come from the core skill
 `backoffice:canvas-artifacts`. Scope: `team` for the Team board, `agent` for each agent's own board. Executive
 overviews that span every team (dashboard, quarter plan) may go to `workspace` when the person wants them there.

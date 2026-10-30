@@ -1,6 +1,6 @@
-# Canvas ideas · marketing-team
+# Boards ideas · marketing-team
 
-Artifacts this team can publish to the Canvas with `backoffice_artifact_publish`. Titles are Spanish patterns
+Artifacts this team can publish to the Boards with `backoffice_artifact_publish`. Titles are Spanish patterns
 (`<negocio>`, `<periodo>`, `Pxx` are placeholders filled with real values). Templates come from the core skill
 `backoffice:canvas-artifacts`. Scope: `team` for the Team board, `agent` for each agent's own board, `workspace`
 only when the person asked for a project-level view.
@@ -59,5 +59,5 @@ only when the person asked for a project-level view.
   `[NO DATA: ...]`. Never a mock-up with sample numbers.
 - One card per deliverable. A change is a new version of the same artifact (`artifact_id`), never a new card.
 - Request review with one concrete question in the note (e.g. «¿Aprobamos el gancho B para P03?»).
-- Publishing to the Canvas does not replace the task: still `backoffice_task_deliver` and move the task to `review`.
+- Publishing to the Boards does not replace the task: still `backoffice_task_deliver` and move the task to `review`.
 - Read `backoffice:canvas-artifacts` for the procedure, templates and scopes before publishing.

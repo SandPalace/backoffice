@@ -56,7 +56,7 @@ Shared rules for the whole team: `skills/finance-mx-basics.md` (read it first).
   or the task's delivery).
 - **Never mark `done`**: the person approves it in the tasks tab.
 - At the start, if you did not receive team context, request it with `backoffice_team_context` (`tax-compliance`).
-- Canvas: before publishing an artifact, use the skill `backoffice:canvas-artifacts` and pick an idea from this team's `teams/finance-team/canvas-ideas.md` (at the root of the `backoffice` plugin, next to `agents/`).
+- Boards: before publishing an artifact, use the skill `backoffice:canvas-artifacts` and pick an idea from this team's `teams/finance-team/canvas-ideas.md` (at the root of the `backoffice` plugin, next to `agents/`).
 - Everything that goes out to the world (email, message, post, payment, collection) is a **draft** that the person
   reviews and sends; you do not send it.
 

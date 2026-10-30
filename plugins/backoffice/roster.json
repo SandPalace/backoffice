@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-29T16:22:53.186Z",
+  "generated_at": "2026-10-29T21:41:53.753Z",
   "plugins": [
     {
       "id": "backoffice-core",
@@ -18,7 +18,7 @@
         },
         {
           "id": "canvas-artifacts",
-          "description": "Builds a Canvas artifact from a ready-made template (report, options, dashboard, checklist, timeline, gallery, table, document) filled only with real data, self-checks it and publishes it to the right board (agent, team or project) with a review question. Use it before publishing anything to the ca…"
+          "description": "Builds a Boards artifact from a ready-made template (report, options, dashboard, checklist, timeline, gallery, table, document) filled only with real data, self-checks it and publishes it to the right board (agent, team or project) with a review question. Use it before publishing anything to the ca…"
         },
         {
           "id": "team-status",
@@ -242,7 +242,7 @@
       "agents": [
         {
           "id": "ceo",
-          "description": "Chief executive. Use it to set priorities across areas, resolve resource conflicts between marketing, sales, collections and finance, and prepare the final decisions the owner signs (memos, quarterly plan, weekly review).",
+          "description": "Chief executive and the front door of a new Back Office. Use it to kick off the company (skill company-kickoff - migrate an old AgentOS, configure Back Office, interview the owner, build the knowledge base, the status dashboard and the plan), to set priorities across areas, resolve resource conflic…",
           "model": "opus"
         },
         {
@@ -260,6 +260,10 @@
         {
           "id": "cash-flow-forecast",
           "description": "Projects the 13-week cash flow with explicit assumptions: opening balance, expected collections, fixed and variable payments, and the week in which cash hits its minimum. Use it to know whether the money is enough, before a large expense, or when the person asks \"how long can we last?\"."
+        },
+        {
+          "id": "company-kickoff",
+          "description": "The C-board kickoff checklist for a new Back Office (one Back Office = one company). The CEO runs it as the main agent and orchestrates the other agents - verify the install, migrate the data of an old AgentOS Local, configure Back Office, interview the owner to start the company knowledge base, pu…"
         },
         {
           "id": "decision-memo",

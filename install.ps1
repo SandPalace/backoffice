@@ -123,6 +123,42 @@ if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
   Warn 'Sin Git el comando ".\bin\backoffice.cmd update" no va a funcionar (lo demas si).'
 } else { Ok 'Git encontrado' }
 
+# 1b. Empresa y puertos
+Step '1b Empresa y puertos'
+# Un Back Office por empresa: cada empresa en su propia carpeta, con su plugin (backoffice-<empresa>) y sus dos puertos.
+# Se guardan en data\.env; si ya estaban, se respetan (actualizar nunca te cambia de puerto).
+$curCompany = ''
+$envPath0 = Join-Path $BACKOFFICE_HOME '.env'
+if (Test-Path $envPath0) {
+  $l = Get-Content $envPath0 -ErrorAction SilentlyContinue | Where-Object { $_ -match '^BACKOFFICE_COMPANY=' } | Select-Object -Last 1
+  if ($l) { $curCompany = ($l -replace '^BACKOFFICE_COMPANY=', '').Trim() }
+}
+$COMPANY = $env:BACKOFFICE_COMPANY
+if (-not $curCompany -and -not $COMPANY -and (Test-Interactive)) {
+  Write-Host '    De que empresa es este Back Office? Con el nombre, tus agentes se instalan como un plugin propio de la empresa'
+  Write-Host '    (backoffice-<empresa>) y puedes tener varias empresas en esta computadora, cada una en su carpeta.'
+  $COMPANY = (Read-Host '    Nombre de la empresa (Enter para omitir)').Trim()
+}
+$env:BACKOFFICE_HOME = $BACKOFFICE_HOME
+$setupArgs = @('setup')
+if ($COMPANY) { $setupArgs += @('--name', $COMPANY) }
+$setupOut = & $NODE_BIN (Join-Path $REPO 'scripts\company.mjs') @setupArgs
+if ($LASTEXITCODE -ne 0) { Die "No pude guardar la empresa y los puertos en $envPath0." }
+$SLUG = ''
+foreach ($line in $setupOut) {
+  if ($line -match '^BACKOFFICE_PORT=(\d+)$') { $PORT = $Matches[1] }
+  elseif ($line -match '^BACKOFFICE_WEB_PORT=(\d+)$') { $WEB_PORT = $Matches[1] }
+  elseif ($line -match '^BACKOFFICE_COMPANY_SLUG=([a-z0-9-]*)$') { $SLUG = $Matches[1] }
+}
+$env:BACKOFFICE_PORT = $PORT; $env:BACKOFFICE_WEB_PORT = $WEB_PORT
+if ($SLUG) {
+  $MCP_KEY = "backoffice-$SLUG"; $RULE = "mcp__plugin_backoffice-$($SLUG)_backoffice"
+  Ok "Empresa: plugin backoffice-$SLUG - puertos $PORT (servidor) y $WEB_PORT (oficina web)"
+} else {
+  $MCP_KEY = 'backoffice'; $RULE = 'mcp__plugin_backoffice_backoffice'
+  Ok "Sin empresa (plugin backoffice) - puertos $PORT (servidor) y $WEB_PORT (oficina web)"
+}
+
 # 2. Claude CLI
 Step '2/7 Revisando Claude Code'
 $HAVE_CLAUDE = $false
@@ -151,7 +187,8 @@ try {
 Ok 'Web compilada'
 
 # 4. Plugin
-Step '4/7 Registrando el plugin backoffice en Claude Code'
+Step '4/7 Registrando el plugin de Back Office en Claude Code'
+# Con empresa genera dist\company-plugin y registra/instala backoffice-<empresa>@backoffice-<empresa> en lugar del generico.
 # Todo en un solo lugar (scripts\migrate-plugins.mjs, el mismo que usa update): registra el marketplace en esta carpeta
 # (si apuntaba a otra, p. ej. porque moviste la carpeta, lo quita y lo vuelve a agregar), quita los 7 plugins viejos,
 # instala o actualiza backoffice@backoffice, y corrige las rutas de Back Office que apunten a la ubicacion anterior en
@@ -194,14 +231,18 @@ if (c === null || typeof c !== 'object' || Array.isArray(c)) process.exit(3);
 c.mcpServers = c.mcpServers || {};
 const e = { command: process.env.NODE_BIN, args: [process.env.MCP] };
 e.env = process.env.LEGACY === '1' ? {} : { BACKOFFICE_HOME: process.env.BACKOFFICE_HOME, BACKOFFICE_ROOT: process.env.BACKOFFICE_ROOT };
-if (process.env.PORT !== '4780') e.env.BACKOFFICE_PORT = process.env.PORT;
+const company = process.env.KEY !== 'backoffice';
+if (company || process.env.PORT !== '4780') e.env.BACKOFFICE_PORT = process.env.PORT;
+if (company) e.env.BACKOFFICE_WEB_PORT = process.env.WEB_PORT;
 if (!Object.keys(e.env).length) delete e.env;
-c.mcpServers.backoffice = e;
+c.mcpServers[process.env.KEY] = e;
 fs.writeFileSync(f, JSON.stringify(c, null, 2) + '\n');
 '@
   $env:NODE_BIN = $NODE_BIN
   $env:MCP = Join-Path $REPO 'plugins\backoffice\server\src\mcp.mjs'
   $env:PORT = $PORT
+  $env:WEB_PORT = $WEB_PORT
+  $env:KEY = $MCP_KEY
   $env:LEGACY = if ($LEGACY) { '1' } else { '0' }
   foreach ($dir in $cfgDirs) {
     New-Item -ItemType Directory -Force -Path $dir | Out-Null
@@ -209,10 +250,10 @@ fs.writeFileSync(f, JSON.stringify(c, null, 2) + '\n');
     if (Test-Path $cfg) { Copy-Item $cfg "$cfg.backoffice-backup" -Force }
     $env:CFG = $cfg
     $rc = Invoke-NodeScript $NODE_BIN $mergeJs
-    if ($rc -eq 0) { Ok "Claude Desktop configurado en $cfg (respaldo: $cfg.backoffice-backup). Reinicia Claude Desktop." }
+    if ($rc -eq 0) { Ok "Claude Desktop configurado (MCP $MCP_KEY) en $cfg (respaldo: $cfg.backoffice-backup). Reinicia Claude Desktop." }
     else { Warn "No pude editar $cfg (JSON danado?). Tu archivo no se toco." }
   }
-  Remove-Item Env:\CFG, Env:\NODE_BIN, Env:\MCP, Env:\PORT, Env:\LEGACY -ErrorAction SilentlyContinue
+  Remove-Item Env:\CFG, Env:\NODE_BIN, Env:\MCP, Env:\PORT, Env:\WEB_PORT, Env:\KEY, Env:\LEGACY -ErrorAction SilentlyContinue
 } else { Ok 'Omitido' }
 
 # 5b. Permisos de Claude Code
@@ -231,6 +272,7 @@ if ($DO_SETTINGS -and -not $ALLOW) {
   }
 }
 function Show-EnvJson {
+  if ($SLUG) { return }   # con empresa el plugin trae su carpeta (company.json): no hace falta el env global de Claude
   Warn ('Para que los hooks y las herramientas de Claude encuentren tus datos, agrega esto a ' + (Join-Path $env:USERPROFILE '.claude\settings.json') + ':')
   $hj = $BACKOFFICE_HOME.Replace('\', '\\'); $rj = $ROOT_DIR.Replace('\', '\\')
   Write-Host ('        "env": {"BACKOFFICE_HOME": "' + $hj + '", "BACKOFFICE_ROOT": "' + $rj + '"}')
@@ -253,13 +295,13 @@ if (fs.existsSync(f)) {
   if (t) { try { c = JSON.parse(t); } catch (e) { process.exit(3); } }
 }
 if (c === null || typeof c !== 'object' || Array.isArray(c)) process.exit(3);
-const rule = 'mcp__plugin_backoffice_backoffice';
+const rule = process.env.RULE;
 const olds = ['mcp__plugin_agentos-core_agentos', 'mcp__plugin_agentos_agentos'];
 c.permissions = c.permissions && typeof c.permissions === 'object' ? c.permissions : {};
 if (!Array.isArray(c.permissions.allow)) c.permissions.allow = [];
 const hadOld = c.permissions.allow.some((r) => olds.includes(r));
 const env = c.env && typeof c.env === 'object' && !Array.isArray(c.env) ? c.env : {};
-const legacy = process.env.LEGACY === '1';
+const legacy = process.env.LEGACY === '1' || process.env.COMPANY_MODE === '1'; // con empresa: el env global queda para el plugin generico
 const hasRule = c.permissions.allow.includes(rule);
 const hasEnv = legacy || (env.BACKOFFICE_HOME === process.env.BACKOFFICE_HOME && env.BACKOFFICE_ROOT === process.env.BACKOFFICE_ROOT);
 if (hasRule && hasEnv && !hadOld) { console.log('    OK  La regla y las rutas ya estaban en ' + f); process.exit(0); }
@@ -271,9 +313,11 @@ fs.writeFileSync(f, JSON.stringify(c, null, 2) + '\n');
 console.log('    OK  Agregue permissions.allow: ' + rule + ' y env BACKOFFICE_HOME/BACKOFFICE_ROOT en ' + f + ' (respaldo: ' + f + '.backoffice-backup)');
 '@
   $env:SET = $set
+  $env:RULE = $RULE
+  $env:COMPANY_MODE = if ($SLUG) { '1' } else { '0' }
   $env:LEGACY = if ($LEGACY) { '1' } else { '0' }
   $rc = Invoke-NodeScript $NODE_BIN $allowJs
-  Remove-Item Env:\SET, Env:\LEGACY -ErrorAction SilentlyContinue
+  Remove-Item Env:\SET, Env:\RULE, Env:\COMPANY_MODE, Env:\LEGACY -ErrorAction SilentlyContinue
   if ($rc -ne 0) { Warn "No pude editar $set (JSON danado?). No se toco. Sin este permiso Claude te pedira aprobar las herramientas de Back Office."; Show-EnvJson }
 } elseif ($ALLOW -ne 'no') { Ok 'Omitido' }
 
@@ -281,8 +325,9 @@ console.log('    OK  Agregue permissions.allow: ' + rule + ' y env BACKOFFICE_HO
 Step '6/7 Usuario y contrasena de la oficina web'
 New-Item -ItemType Directory -Force -Path $BACKOFFICE_HOME | Out-Null
 $ENVF = Join-Path $BACKOFFICE_HOME '.env'
-if ((Test-Path $ENVF) -and -not $ResetLogin) {
-  Ok "Ya existe $ENVF (usa -ResetLogin para cambiarlo)"
+$hasUser = (Test-Path $ENVF) -and (@(Get-Content $ENVF -ErrorAction SilentlyContinue | Where-Object { $_ -match '^(BACKOFFICE|AGENTOS)_USER=' }).Count -gt 0)
+if ($hasUser -and -not $ResetLogin) {
+  Ok "Ya hay usuario en $ENVF (usa -ResetLogin para cambiarlo)"
 } else {
   $U = $env:BACKOFFICE_USER; $P = $env:BACKOFFICE_PASSWORD
   if (-not $U) {
@@ -306,7 +351,12 @@ if ((Test-Path $ENVF) -and -not $ResetLogin) {
   }
   if (-not $P) { Die 'Contrasena vacia.' }
   if (($U + $P) -match "[\r\n]") { Die 'Usuario y contrasena no pueden tener saltos de linea.' }
-  Write-Utf8NoBom $ENVF ("BACKOFFICE_USER=$U`nBACKOFFICE_PASSWORD=$P`n")
+  # Solo cambia estas dos lineas: la empresa, los puertos y las llaves de WhatsApp que ya esten en el archivo se quedan.
+  $env:BACKOFFICE_USER = $U; $env:BACKOFFICE_PASSWORD = $P
+  & $NODE_BIN (Join-Path $REPO 'scripts\company.mjs') set-env BACKOFFICE_USER BACKOFFICE_PASSWORD
+  $rcEnv = $LASTEXITCODE
+  Remove-Item Env:\BACKOFFICE_PASSWORD -ErrorAction SilentlyContinue
+  if ($rcEnv -ne 0) { Die "No pude escribir $ENVF." }
   # Solo tu usuario puede leer/escribir el archivo.
   & icacls $ENVF /inheritance:r /grant:r "$($env:USERNAME):(R,W)" *> $null
   if ($LASTEXITCODE -ne 0) { Warn 'No pude restringir los permisos del archivo (no es grave, es tu carpeta personal).' }
@@ -326,12 +376,18 @@ Write-Host '(el comando vive dentro de esta carpeta; no se instala nada en tu si
 Write-Host "y entra con el usuario que acabas de crear (http://localhost:$WEB_PORT)."
 Write-Host 'Si Windows pregunta por el Firewall para "node", elige "Permitir" (solo redes privadas).'
 Write-Host ''
-Write-Host 'Para usar Back Office en Claude Desktop (Chat y Cowork):'
-Write-Host '  1. Claude Desktop -> Personalizar -> Plugins -> Agregar marketplace: SandPalace/backoffice -> instala "backoffice".'
+if ($SLUG) {
+  Write-Host "Tu plugin de empresa es backoffice-$SLUG (agentes: backoffice-$($SLUG):ceo, backoffice-$($SLUG):cmo, ...)."
+  Write-Host 'Para usarlo en Claude Desktop (Chat y Cowork):'
+  Write-Host ('  1. Claude Desktop -> Personalizar -> Plugins -> Agregar marketplace -> elige la carpeta ' + (Join-Path $REPO 'dist\company-plugin') + " -> instala `"backoffice-$SLUG`".")
+} else {
+  Write-Host 'Para usar Back Office en Claude Desktop (Chat y Cowork):'
+  Write-Host '  1. Claude Desktop -> Personalizar -> Plugins -> Agregar marketplace: SandPalace/backoffice -> instala "backoffice".'
+}
 Write-Host '  2. Abre una sesion NUEVA de Cowork y pregunta: "Que equipos y agentes tengo en Back Office?"'
-& node (Join-Path $REPO 'scripts\build-mcpb.mjs') *> $null
-if ($LASTEXITCODE -eq 0) {
+$mcpbOut = & node (Join-Path $REPO 'scripts\build-mcpb.mjs') 2>$null
+if ($LASTEXITCODE -eq 0 -and $mcpbOut) {
   Write-Host '  Si Cowork no ve las herramientas de Back Office, instala la extension (un clic):'
   Write-Host '     Claude Desktop -> Ajustes -> Extensiones -> Instalar extension... -> elige'
-  Write-Host ("     " + (Join-Path $REPO 'dist\backoffice.mcpb'))
+  Write-Host ("     " + (@($mcpbOut)[-1]))
 }

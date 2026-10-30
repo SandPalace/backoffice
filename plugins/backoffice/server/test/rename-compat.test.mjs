@@ -91,7 +91,9 @@ test('base: usa agentos.db mientras no exista backoffice.db; el proyecto «Agent
     const f = join(mkdtempSync(join(tmpdir(), 'backoffice-db-')), 'agentos.db')
     const old = new DatabaseSync(f)
     old.exec('CREATE TABLE _migrations (n INTEGER PRIMARY KEY)')
-    MIGRATIONS.slice(0, -1).forEach((sql, n) => {
+    // everything before the AgentOS → Back Office rename migration (later migrations may follow it)
+    const rename = MIGRATIONS.findIndex((m) => typeof m === 'string' && m.includes("name = 'AgentOS'"))
+    MIGRATIONS.slice(0, rename).forEach((sql, n) => {
       if (typeof sql === 'function') sql(old)
       else old.exec(sql)
       old.prepare('INSERT INTO _migrations (n) VALUES (?)').run(n)

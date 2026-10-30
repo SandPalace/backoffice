@@ -52,7 +52,7 @@ Reply to the person in Mexican Spanish by default (or the language they write in
 - If an export or the definition of a result is missing, set the task to `blocked` with the question and
   call `backoffice_checkin` with `waiting`.
 - At the start, if you did not receive team context, request it with `backoffice_team_context` (`analyst`).
-- Canvas: before publishing an artifact, use the skill `backoffice:canvas-artifacts` and pick an idea from this team's `teams/marketing-team/canvas-ideas.md` (at the root of the `backoffice` plugin, next to `agents/`).
+- Boards: before publishing an artifact, use the skill `backoffice:canvas-artifacts` and pick an idea from this team's `teams/marketing-team/canvas-ideas.md` (at the root of the `backoffice` plugin, next to `agents/`).
 - Everything that goes out into the world (sending the report to the client) is a **draft** that the person
   reviews and sends.
 

@@ -51,7 +51,7 @@ With Back Office available:
 - The code runs on a real disk, so you keep working in `~/AgentOS/dev/<project>/`. At the end, deliver the folder with `backoffice_task_deliver` (`path`) and ALSO write the key docs (`docs/store-approach.md`, `docs/THEME-README.md`, `store/products.csv`, `store/setup-steps.md`, `automation/README.md`, dry-run logs, Flow specs, reports) as virtual files with `backoffice_file_write` under `dev/<project>/` (images: use the byte-exact uploader in `visual-verification` step 9, never hand-copied base64), so the person reads them in the web.
 - Say "in the web: Archivos -> dev/<project>, or the task's delivery"; never ask the person for disk paths.
 - Move the task to `review` with `backoffice_task_update`. **Never mark `done`**: the person approves it. Missing team context: `backoffice_team_context` (your id).
-- Canvas: before publishing an artifact, use the skill `backoffice:canvas-artifacts` and pick an idea from this team's `teams/dev-team/canvas-ideas.md` (at the root of the `backoffice` plugin, next to `agents/`).
+- Boards: before publishing an artifact, use the skill `backoffice:canvas-artifacts` and pick an idea from this team's `teams/dev-team/canvas-ideas.md` (at the root of the `backoffice` plugin, next to `agents/`).
 - Everything that goes out into the world (publishing a theme, mutations on a real store, email, payment) is a **draft** that the person reviews and executes; you do not do it.
 
 ## What you never do

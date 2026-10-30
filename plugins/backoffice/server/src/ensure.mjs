@@ -6,11 +6,9 @@ import { join, dirname, basename } from 'node:path'
 import { homedir } from 'node:os'
 import { isMain, repoRoot } from './paths.mjs'
 import { withLegacyEnv } from './env.mjs'
+import { readCompany } from './company-file.mjs'
+import { parseEnv } from './auth.mjs'
 
-const PORT = Number(process.env.BACKOFFICE_PORT || 4780)
-const BASE = `http://127.0.0.1:${PORT}`
-
-export const baseUrl = BASE
 
 async function healthy(ms = 400) {
   try {
@@ -28,7 +26,8 @@ const isBackOffice = (dir) => !!dir && existsSync(join(dir, '.claude-plugin', 'm
 const readJson = (f) => { try { return JSON.parse(readFileSync(f, 'utf8')) } catch { return null } }
 
 /**
- * Where this computer's Back Office folder is, WITHOUT relying on the caller's env. A plugin added from Claude Desktop
+ * Where this computer's Back Office folder is, WITHOUT relying on the caller's env. A per-company plugin answers first
+ * from its baked company.json (company-file.mjs; several Back Offices on one machine, each plugin knows its own). A plugin added from Claude Desktop
  * (Customize → Plugins, what Cowork loads) or a desktop extension does not get the `env` of ~/.claude/settings.json, so
  * the plugin-cache copy of this file looks, in order: BACKOFFICE_HOME/BACKOFFICE_ROOT → the clone this code runs from →
  * `env` in ~/.claude/settings.json → Claude Desktop's `mcpServers.backoffice.env` (both written by the installer) →
@@ -36,7 +35,7 @@ const readJson = (f) => { try { return JSON.parse(readFileSync(f, 'utf8')) } cat
  * An install not migrated yet still has AGENTOS_* names and `mcpServers.agentos`: both are read too (rename compat).
  * Read-only. Returns { home, root, repo } (repo null for an old ~/.agentos install) or null.
  */
-export function locateInstall({ env = process.env, home = homedir(), repo = repoRoot() } = {}) {
+export function locateInstall({ env = process.env, home = homedir(), repo = repoRoot(), company = readCompany() } = {}) {
   const fromVars = (raw) => {
     const v = raw && typeof raw === 'object' ? withLegacyEnv({ ...raw }) : null
     if (!v?.BACKOFFICE_HOME) return null
@@ -45,7 +44,9 @@ export function locateInstall({ env = process.env, home = homedir(), repo = repo
   }
   const fromRepo = (r) => (isBackOffice(r) ? { home: join(r, 'data'), root: join(r, 'workspaces'), repo: r } : null)
   const desktopDirs = [join(home, 'Library', 'Application Support', 'Claude'), join(home, '.config', 'Claude'), ...(env.APPDATA ? [join(env.APPDATA, 'Claude')] : [])]
+  const fromCompany = (c) => (c ? { home: c.home, root: c.root || join(dirname(c.home), 'workspaces'), repo: c.repo && isBackOffice(c.repo) ? c.repo : null } : null)
   return (
+    fromCompany(company) ??
     fromVars(env) ??
     fromRepo(repo) ??
     fromVars(readJson(join(env.CLAUDE_CONFIG_DIR || join(home, '.claude'), 'settings.json'))?.env) ??
@@ -54,6 +55,23 @@ export function locateInstall({ env = process.env, home = homedir(), repo = repo
     null
   )
 }
+
+/** BACKOFFICE_PORT / BACKOFFICE_WEB_PORT saved in the install's data/.env (the installer picks a free pair per company). */
+export function installPorts(loc = locateInstall()) {
+  if (!loc?.home) return {}
+  let v = {}
+  try { v = withLegacyEnv(parseEnv(readFileSync(join(loc.home, '.env'), 'utf8'))) } catch { return {} }
+  const ok = (x) => (/^\d{2,5}$/.test(String(x ?? '')) ? String(x) : undefined)
+  return { port: ok(v.BACKOFFICE_PORT), web_port: ok(v.BACKOFFICE_WEB_PORT) }
+}
+
+// Port of THIS Back Office: company.json (already in process.env) > BACKOFFICE_PORT > the install's data/.env > 4780.
+// The web port is only needed for links (mcp.mjs canvasLink reads process.env), so it is filled in when unset.
+const SAVED = process.env.BACKOFFICE_PORT && process.env.BACKOFFICE_WEB_PORT ? {} : installPorts()
+const PORT = Number(process.env.BACKOFFICE_PORT || SAVED.port || 4780)
+if (!process.env.BACKOFFICE_WEB_PORT && SAVED.web_port) process.env.BACKOFFICE_WEB_PORT = SAVED.web_port
+const BASE = `http://127.0.0.1:${PORT}`
+export const baseUrl = BASE
 
 // Node that can run the server (it needs node:sqlite, Node 22.5+). Claude Desktop may run plugins and extensions with its
 // own built-in Node; if that one cannot, use the person's Node (the installer requires one). BACKOFFICE_NODE overrides.
@@ -84,7 +102,7 @@ export async function ensureServer({ waitMs = 3000 } = {}) {
       detached: true,
       windowsHide: true,
       stdio: ['ignore', log, log],
-      env: { ...process.env, BACKOFFICE_HOME: loc.home, BACKOFFICE_ROOT: loc.root, BACKOFFICE_PORT: String(PORT) },
+      env: { ...process.env, BACKOFFICE_HOME: loc.home, BACKOFFICE_ROOT: loc.root, BACKOFFICE_PORT: String(PORT), ...(process.env.BACKOFFICE_WEB_PORT ? { BACKOFFICE_WEB_PORT: process.env.BACKOFFICE_WEB_PORT } : {}) },
     })
     child.on('error', () => {})
     child.unref()

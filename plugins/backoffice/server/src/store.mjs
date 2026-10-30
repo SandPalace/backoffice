@@ -13,7 +13,10 @@ export const bucketOf = (wsId) => `ws-${wsId}`
 // Se adjunta al contexto de los agentes (SessionStart/SubagentStart, backoffice_team_context) y a backoffice_overview.
 export const FILES_NOTE =
   'Files: your files live in Back Office storage for this workspace (not on the person\'s disk). Use backoffice_file_read/write/list/delete/move with workspace-relative paths like `marketing/<client>/facts.md`. Never ask the person for disk paths or to open files; deliver with backoffice_task_deliver `files`. Use the local disk only when you must run a shell/build (code projects), then deliver the folder.'
-export const AGENT_STATUSES = ['todo', 'doing', 'blocked', 'review'] // 'done' sólo lo pone una persona
+export const AGENT_STATUSES = ['backlog', 'todo', 'doing', 'blocked', 'review'] // 'done' y 'cancelled' sólo los pone una persona
+export const TASK_STATUSES = [...AGENT_STATUSES, 'done', 'cancelled']
+const CLOSED_TASK = ['done', 'cancelled']
+const taskCounts = () => Object.fromEntries(TASK_STATUSES.map((s) => [s, 0]))
 const KEEP_EVENTS = 5000
 export const PROFILE_FIELDS = ['preferred_name', 'about', 'personal_goals', 'professional_goals', 'current_focus', 'work_style']
 export const INSIGHT_CATEGORIES = ['preference', 'goal', 'context', 'communication', 'other']
@@ -98,7 +101,7 @@ export function createStore(db, { roster: rosterOpt = null } = {}) {
   }
   const wsCounts = (id) => ({
     tasks: db.prepare("SELECT COUNT(*) AS n FROM tasks WHERE workspace_id = ?").get(id).n,
-    tasks_open: db.prepare("SELECT COUNT(*) AS n FROM tasks WHERE workspace_id = ? AND status != 'done'").get(id).n,
+    tasks_open: db.prepare("SELECT COUNT(*) AS n FROM tasks WHERE workspace_id = ? AND status NOT IN ('done', 'cancelled')").get(id).n,
     teams: db.prepare('SELECT COUNT(*) AS n FROM teams WHERE workspace_id = ?').get(id).n,
     outputs: db.prepare('SELECT COUNT(*) AS n FROM outputs WHERE workspace_id = ?').get(id).n,
     sessions_active: db.prepare("SELECT COUNT(*) AS n FROM sessions WHERE workspace_id = ? AND status != 'offline'").get(id).n,
@@ -189,7 +192,16 @@ export function createStore(db, { roster: rosterOpt = null } = {}) {
   // ones inside a project (cwd under a workspace root), with BACKOFFICE_WORKSPACE set, using a roster agent, or already known.
   const rosterIds = new Set(roster.plugins.flatMap((p) => p.agents.map((a) => a.id)))
   const cwdInProject = (cwd) => typeof cwd === 'string' && cwd !== '' && listWorkspaceRows().some((w) => w.root && pathInside(norm(cwd), norm(w.root)))
+  // Every installed company plugin's hooks fire in every Claude session: a session run by another company's plugin
+  // (`backoffice-<other>:ceo`) belongs to that company's server, never to this one.
+  function foreignPlugin(agentType) {
+    const own = process.env.BACKOFFICE_COMPANY_SLUG ? `backoffice-${process.env.BACKOFFICE_COMPANY_SLUG}`.toLowerCase() : null
+    const parts = String(agentType ?? '').toLowerCase().split(':')
+    return parts.length > 1 && /^backoffice-/.test(parts[0]) && parts[0] !== own
+  }
+
   function tracksSession(p, sid) {
+    if (p.agent_type && foreignPlugin(p.agent_type)) return false
     const explicit = p.backoffice_workspace ?? p.env?.BACKOFFICE_WORKSPACE ?? p.env?.AGENTOS_WORKSPACE ?? p.workspace ?? null
     if (explicit && getWorkspaceRow(explicit)) return true
     if (p.agent_type && rosterIds.has(agentKey(p.agent_type))) return true
@@ -267,19 +279,42 @@ export function createStore(db, { roster: rosterOpt = null } = {}) {
     return { ...t, output_dir_exists: t.output_dir ? existsSync(t.output_dir) : null, outputs }
   }
 
-  const ALL_STATUSES = [...AGENT_STATUSES, 'done']
-  // `human`: la persona (web) puede crear la tarea directo en cualquier columna; los agentes sólo en todo.
-  function createTask({ title, description = null, agent = null, session_id = null, status = 'todo' }, ws = DEFAULT_WS, human = false) {
+  const ALL_STATUSES = TASK_STATUSES
+  // story_id / sprint_id: null unlinks; otherwise a story/sprint of the same workspace (a completed sprint takes no new work).
+  function taskLinks(p, ws) {
+    const o = {}
+    for (const [k, table, label] of [['story_id', 'stories', 'la historia'], ['sprint_id', 'sprints', 'el sprint']]) {
+      if (!(k in p) || p[k] === undefined) continue
+      const v = p[k]
+      if (v === null || v === '') { o[k] = null; continue }
+      const r = typeof v === 'string' ? db.prepare(`SELECT workspace_id, status, ${k === 'story_id' ? 'sprint_id' : 'NULL AS sprint_id'} FROM ${table} WHERE id = ?`).get(v) : null
+      if (!r || r.workspace_id !== ws) throw new AppError('bad_link', `No existe ${label} ${v} en este proyecto`, 400)
+      if (table === 'sprints' && r.status === 'completed') throw new AppError('sprint_completed', `El sprint ${v} ya está completado; usa otro`, 409)
+      o[k] = v
+      if (k === 'story_id') o._story_sprint = r.sprint_id
+    }
+    return o
+  }
+  const writeLinks = (id, l) => {
+    for (const k of ['story_id', 'sprint_id']) if (k in l) db.prepare(`UPDATE tasks SET ${k} = ? WHERE id = ?`).run(l[k], id)
+  }
+  // `human`: la persona (web) puede crear la tarea directo en cualquier columna; los agentes sólo en backlog o todo.
+  function createTask({ title, description = null, agent = null, session_id = null, status = 'todo', ...rest }, ws = DEFAULT_WS, human = false) {
     needWorkspace(ws)
     if (!title || !String(title).trim()) throw new AppError('bad_request', 'La tarea necesita un título')
     if (human) {
       if (String(title).trim().length > 200) throw new AppError('bad_request', 'El título admite hasta 200 caracteres')
       if (!ALL_STATUSES.includes(status)) throw new AppError('bad_status', `Estado inválido: ${status}`)
-    } else status = 'todo'
+    } else status = status === 'backlog' ? 'backlog' : 'todo'
+    const links = taskLinks(rest, ws)
+    // A task created inside a story lands in that story's sprint unless it says otherwise.
+    if (links.story_id && !('sprint_id' in links) && links._story_sprint) links.sprint_id = links._story_sprint
+    delete links._story_sprint
     const id = `T-${randomUUID().slice(0, 8)}`
     const ts = now()
     q.insTask.run(id, String(title).trim(), description, agent, session_id, ts, ts, ws)
     if (status !== 'todo') db.prepare('UPDATE tasks SET status = ? WHERE id = ?').run(status, id)
+    writeLinks(id, links)
     const t = withOutputs(q.getTask.get(id))
     emit('task', t)
     return t
@@ -290,6 +325,24 @@ export function createStore(db, { roster: rosterOpt = null } = {}) {
     const t = taskIn(id, ws)
     if (!ALL_STATUSES.includes(status)) throw new AppError('bad_status', `Estado inválido: ${status}`)
     q.updTask.run(t.title, t.description, status, t.agent, t.session_id, t.output_dir, now(), id)
+    // A cancel proposal stays as the reason when the person cancels (or keeps it in review); any other move drops it.
+    if (t.cancel_proposal && status !== 'cancelled' && status !== 'review') db.prepare('UPDATE tasks SET cancel_proposal = NULL WHERE id = ?').run(id)
+    const out = withOutputs(q.getTask.get(id))
+    emit('task', out)
+    return out
+  }
+
+  // La persona (web, PATCH /api/human/tasks/:id): estado y/o historia/sprint.
+  function humanUpdateTask(id, body = {}, ws = null) {
+    const t = taskIn(id, ws)
+    const links = taskLinks(body ?? {}, t.workspace_id)
+    delete links._story_sprint
+    if (body?.status === undefined && !Object.keys(links).length) throw new AppError('bad_request', 'Manda status, story_id o sprint_id')
+    if (body?.status !== undefined) setTaskStatus(id, body.status, ws)
+    if (Object.keys(links).length) {
+      writeLinks(id, links)
+      db.prepare('UPDATE tasks SET updated_at = ? WHERE id = ?').run(now(), id)
+    }
     const out = withOutputs(q.getTask.get(id))
     emit('task', out)
     return out
@@ -362,9 +415,22 @@ export function createStore(db, { roster: rosterOpt = null } = {}) {
     return Number(ins.lastInsertRowid)
   }
 
-  // Un agente puede mover una tarea hasta "review". Pasarla a "done" es de una persona (approveTask).
+  // Un agente puede mover una tarea hasta "review". Pasarla a "done" es de una persona (approveTask); cancelarla también:
+  // el agente sólo lo PROPONE con `propose_cancel` (el motivo), que la deja en review para que la persona decida.
   function updateTask(id, patch = {}, ws = null) {
     const t = taskIn(id, ws)
+    const proposal = patch.propose_cancel === undefined || patch.propose_cancel === null ? null : String(patch.propose_cancel).trim()
+    if (proposal !== null) {
+      if (!proposal || proposal.length > 1000) throw new AppError('bad_request', 'propose_cancel necesita el motivo (1 a 1000 caracteres)')
+      if (patch.status && patch.status !== 'review') throw new AppError('bad_request', 'Proponer cancelar deja la tarea en review; no mandes otro status')
+      patch = { ...patch, status: 'review' }
+    }
+    if (patch.status === 'cancelled')
+      throw new AppError('human_only', 'Sólo la persona cancela una tarea. Para proponerlo usa propose_cancel con el motivo (queda en review).', 403)
+    if (t.status === 'cancelled' && patch.status && patch.status !== 'cancelled')
+      throw new AppError('human_only', 'La tarea está cancelada; sólo la persona la reabre.', 403)
+    const links = taskLinks(patch, t.workspace_id)
+    delete links._story_sprint
     const next = {
       title: patch.title ?? t.title,
       description: patch.description ?? t.description,
@@ -378,9 +444,12 @@ export function createStore(db, { roster: rosterOpt = null } = {}) {
     if (patch.status && !AGENT_STATUSES.includes(patch.status))
       throw new AppError('bad_status', `Estado inválido: ${patch.status}`)
     if (patch.output_dir !== undefined && patch.output_dir !== null) needAbs(patch.output_dir, 'output_dir')
-    if (next.status === 'review' && !next.output_dir && q.outputsOf.all(id).length === 0)
-      throw new AppError('needs_output', 'Para pasar a review indica output_dir o registra al menos un entregable', 422)
+    const cancelProposal = proposal ?? (next.status === 'review' ? t.cancel_proposal : null)
+    if (next.status === 'review' && !cancelProposal && !next.output_dir && q.outputsOf.all(id).length === 0)
+      throw new AppError('needs_output', 'Para pasar a review indica output_dir o registra al menos un entregable (o propose_cancel con el motivo)', 422)
     q.updTask.run(next.title, next.description, next.status, next.agent, next.session_id, next.output_dir, now(), id)
+    db.prepare('UPDATE tasks SET cancel_proposal = ? WHERE id = ?').run(cancelProposal, id)
+    writeLinks(id, links)
     const out = withOutputs(q.getTask.get(id))
     emit('task', out)
     return out
@@ -568,12 +637,12 @@ export function createStore(db, { roster: rosterOpt = null } = {}) {
           name: m.display_name || m.agent_id,
           status: s?.status ?? 'offline',
           detail: s?.detail ?? null,
-          open_tasks: tasks.filter((x) => agentKey(x.agent) === m.agent_id && x.status !== 'done').map((x) => ({ id: x.id, title: x.title, status: x.status })),
+          open_tasks: tasks.filter((x) => agentKey(x.agent) === m.agent_id && !CLOSED_TASK.includes(x.status)).map((x) => ({ id: x.id, title: x.title, status: x.status })),
         }
       }),
     }))
-    const counts = { todo: 0, doing: 0, blocked: 0, review: 0, done: 0 }
-    for (const t of tasks) counts[t.status] += 1
+    const counts = taskCounts()
+    for (const t of tasks) counts[t.status] = (counts[t.status] ?? 0) + 1
     const known = new Set(listTeams(ws).flatMap((t) => t.members.map((m) => m.agent_id)))
     const coo = getSystemAgent('coo', ws)
     return {
@@ -654,8 +723,8 @@ export function createStore(db, { roster: rosterOpt = null } = {}) {
   function projectsSummary() {
     return listWorkspaceRows().map((w) => {
       const tasks = listTasks(w.id)
-      const c = { todo: 0, doing: 0, blocked: 0, review: 0, done: 0 }
-      for (const t of tasks) c[t.status] += 1
+      const c = taskCounts()
+      for (const t of tasks) c[t.status] = (c[t.status] ?? 0) + 1
       const teams = listTeams(w.id)
       const waiting = listSessions(w.id).filter((s) => s.status === 'waiting').map((s) => agentKey(s.agent)).filter(Boolean)
       return {
@@ -665,7 +734,7 @@ export function createStore(db, { roster: rosterOpt = null } = {}) {
         teams: teams.map((t) => ({ id: t.id, name: t.name, active: !!t.active, members: t.members.map((m) => (m.display_name ? `${m.display_name} (${m.agent_id})` : m.agent_id)) })),
         active_team: teams.find((t) => t.active)?.name ?? null,
         leads: leadCounts(w.id),
-        tasks: { open: tasks.length - c.done, review: c.review, blocked: c.blocked, doing: c.doing, todo: c.todo },
+        tasks: { open: tasks.length - c.done - c.cancelled, review: c.review, blocked: c.blocked, doing: c.doing, todo: c.todo, backlog: c.backlog },
         agents_waiting: [...new Set(waiting)],
       }
     })
@@ -868,5 +937,5 @@ export function createStore(db, { roster: rosterOpt = null } = {}) {
     return out
   }
 
-  return { bus, db, DEFAULT_WS, sessionLinks, getProfile, updateProfile, addInsight, deleteInsight, getSetting, setSetting, allWorkspaceIds, emitFiles, addVirtualOutput, listWorkspaces, getWorkspace, createWorkspace, updateWorkspace, deleteWorkspace, needWorkspace, resolveWorkspace, workspaceForCwd, rootsAllowed, getOutput, setOutputStorage, keyTaken, getSystemAgent, listSystemAgents, updateSystemAgent, overview, projectsSummary, getRoster, listTeams, getTeam, createTeam, updateTeam, deleteTeam, activateTeam, contextFor, recordEvent, checkin, isKnownPath, listSessions, createTask, createLead, updateLead, deleteLead, listLeads, setTaskStatus, deleteTask, planTaskMove, applyTaskMove, updateTask, approveTask, addOutput, listTasks, listOutputs, recentEvents, getTask: (id, ws = null) => { const t = q.getTask.get(id); return t && (!ws || t.workspace_id === ws) ? withOutputs(t) : undefined } }
+  return { bus, db, DEFAULT_WS, inTx, humanUpdateTask, sessionLinks, getProfile, updateProfile, addInsight, deleteInsight, getSetting, setSetting, allWorkspaceIds, emitFiles, addVirtualOutput, listWorkspaces, getWorkspace, createWorkspace, updateWorkspace, deleteWorkspace, needWorkspace, resolveWorkspace, workspaceForCwd, rootsAllowed, getOutput, setOutputStorage, keyTaken, getSystemAgent, listSystemAgents, updateSystemAgent, overview, projectsSummary, getRoster, listTeams, getTeam, createTeam, updateTeam, deleteTeam, activateTeam, contextFor, recordEvent, checkin, isKnownPath, listSessions, createTask, createLead, updateLead, deleteLead, listLeads, setTaskStatus, deleteTask, planTaskMove, applyTaskMove, updateTask, approveTask, addOutput, listTasks, listOutputs, recentEvents, getTask: (id, ws = null) => { const t = q.getTask.get(id); return t && (!ws || t.workspace_id === ws) ? withOutputs(t) : undefined } }
 }

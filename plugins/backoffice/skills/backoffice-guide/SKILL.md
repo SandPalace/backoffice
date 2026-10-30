@@ -17,7 +17,7 @@ Talk to the person in their language (Mexican Spanish by default).
 
 Go one step at a time; confirm they managed it before moving on to the next. Explain each new term.
 
-1. **Open the office.** It is Back Office's web screen (it opens at `http://127.0.0.1:4781`). There each agent
+1. **Open the office.** It is Back Office's web screen (it opens at `http://127.0.0.1:4781`, or this company's own web port: with several companies each Back Office folder has its own port pair and its own plugin `backoffice-<slug>`; setup steps in the folder's `CLAUDE.md`, «Configurar el plugin y el MCP en Claude Desktop»). There each agent
    is a character that lights up when working. You (Assistant, the receptionist; internal id `coo`) are their starting point.
 2. **Go to the Teams tab.** A team is the group of agents you will work with. You can have
    several, but only one active at a time: the active one is the one you see in the office.
@@ -45,7 +45,8 @@ When step 7 is done, summarize what they did and propose the next task.
   agent it is and what it is asking for, using `backoffice_overview`.
 - **Where are my files, and how do I give you mine?** In the Archivos tab: upload there, and the agents find them with the file tools. Results are in the task's delivery and in the team's folder (`marketing/`, `sales/`, `collections/`, `executive/`, `dev/`). Never ask the person for a disk path.
 - **Who approves?** Always the person, in the tasks tab. Agents go as far as "review".
-- **What is the Canvas?** The tab where agents publish what the person must see and validate (post drafts, quotes,
+- **What are Backlog, Canceladas and «Plan»?** Tareas has the columns Backlog · Por hacer · En curso · Atoradas · Revisión · Aprobadas (Canceladas hidden behind a toggle) and a «Plan» view: epics → stories → tasks, and sprints with progress. Agents (usually the CEO) plan with `backoffice_epic_*`/`_story_*`/`_sprint_*`; only the person approves, cancels (agents propose it) and presses «Completar sprint», which moves unfinished tasks to the next sprint or back to the backlog.
+- **What is the Boards?** The tab where agents publish what the person must see and validate (post drafts, quotes,
   reports, designs). There the person opens each artifact, compares versions, comments, and presses «Aprobar» or «Pedir
   cambios» (with a comment); the agent learns it from `backoffice_artifact_list` (`needs_action`). Each agent's canvas is also
   in Equipos and in the office («Ver su canvas»). Agents publish with `backoffice_artifact_publish`, after using the skill

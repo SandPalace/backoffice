@@ -153,7 +153,7 @@ export function createCanvas({ db, store, blobs, files, limits = DEFAULT_LIMITS 
       db.prepare('UPDATE artifacts SET status = ?, updated_at = ? WHERE id = ?').run('in_review', now(), a.id)
       const out = listRow(a.id)
       emit(out)
-      return { ...out, note: 'Pedido de revisión enviado: la persona lo ve en la pestaña Canvas.' }
+      return { ...out, note: 'Pedido de revisión enviado: la persona lo ve en la pestaña Boards.' }
     }
     const kind = kindOf(src.type, src.name)
     if (!kind) throw bad(`Unsupported content type for the canvas: ${src.type}. Publish html, markdown, image, pdf, csv or text; deliver other files with backoffice_task_deliver.`, 'unsupported_kind')
@@ -181,7 +181,7 @@ export function createCanvas({ db, store, blobs, files, limits = DEFAULT_LIMITS 
     a = listRow(id)
     emit(a)
     if (isHome) return { ...a, version: n, url: rawUrl(a, n), note: 'Inicio del proyecto actualizado: la persona lo ve en la pestaña Inicio (sin revisión; puede comentarlo).' }
-    return { ...a, version: n, url: rawUrl(a, n), note: status === 'in_review' ? 'Publicado en el Canvas: la persona lo revisa ahí (aprueba o pide cambios). Entrega la tarea como siempre.' : 'Guardado como borrador en el Canvas.' }
+    return { ...a, version: n, url: rawUrl(a, n), note: status === 'in_review' ? 'Publicado en Boards: la persona lo revisa ahí (aprueba o pide cambios). Entrega la tarea como siempre.' : 'Guardado como borrador en Boards.' }
   }
 
   function list(ws, { scope_type, scope_id, status, needs_action, agent } = {}) {

@@ -112,10 +112,10 @@ elsewhere`/`web-running-elsewhere` = another Back Office folder holds the ports:
 
 ## 7. Health check
 
-`./bin/backoffice status` (server and web running), `curl -s http://localhost:4780/api/auth/status` (JSON),
-`claude plugin list` (`backoffice@backoffice` enabled, none of the 7 old ones), `node scripts/build-roster.mjs`,
+`./bin/backoffice status` (server and web running), `curl -s http://localhost:<port>/api/auth/status` (JSON; the port is `BACKOFFICE_PORT` in `data/.env`, 4780 by default — `./bin/backoffice status` prints it),
+`claude plugin list` (the company plugin `backoffice-<slug>@backoffice-<slug>` enabled if `BACKOFFICE_COMPANY` is set in `data/.env`, else `backoffice@backoffice`; none of the 7 old ones), `node scripts/build-roster.mjs`,
 `node scripts/update-check.mjs --no-fetch` (`up-to-date`, no repair). Any failure → the Troubleshooting table in `A/CLAUDE.md`.
-Ask the person to quit and reopen Claude Desktop, open http://localhost:4781 and confirm their projects, tasks and files.
+Ask the person to quit and reopen Claude Desktop, open the office (http://localhost:4781, or this folder's `BACKOFFICE_WEB_PORT`) and confirm their projects, tasks and files.
 
 ## 8. Report (Spanish)
 

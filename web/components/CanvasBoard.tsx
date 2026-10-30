@@ -70,19 +70,19 @@ export default function CanvasBoard({ scopeType, scopeId, status, compact = fals
     if (status) q.set('status', status)
     getJson(`/api/workspaces/${encodeURIComponent(workspaceId)}/canvas?${q}`)
       .then((d: Artifact[]) => { if (alive) { setItems(d); setErr(null) } })
-      .catch((e: Error) => { if (alive) setErr(e.message || 'No se pudo leer el Canvas') })
+      .catch((e: Error) => { if (alive) setErr(e.message || 'No se pudo leer Boards') })
     return () => { alive = false }
   }, [workspaceId, canvasTick, scopeType, scopeId, status])
 
   return (
-    <section aria-label="Canvas">
+    <section aria-label="Boards">
       {err && <div role="alert" className="mb-3 rounded-sm bg-red-soft px-3 py-2 text-xs text-red">{err}</div>}
       {items === null && !err && <p role="status" className="text-sm text-muted">Cargando…</p>}
       {items?.length === 0 && (
         <div role="status" className={`${compact ? 'text-xs' : 'card p-5 text-sm'} text-muted`}>
           {compact
-            ? 'Este agente todavía no ha publicado nada en su canvas.'
-            : 'Todavía no hay nada que revisar aquí. Los agentes publican en el Canvas lo que necesitas ver y validar: borradores de posts, cotizaciones, reportes, diseños. Aquí los abres, comentas, apruebas o pides cambios.'}
+            ? 'Este agente todavía no ha publicado nada en su board.'
+            : 'Todavía no hay nada que revisar aquí. Los agentes publican en Boards lo que necesitas ver y validar: borradores de posts, cotizaciones, reportes, diseños. Aquí los abres, comentas, apruebas o pides cambios.'}
         </div>
       )}
       {!!items?.length && (
@@ -132,7 +132,7 @@ export function AgentCanvasSection({ agentId, name }: { agentId: string; name: s
   const [open, setOpen] = useState(false)
   return (
     <details className="group rounded-sm border border-line" onToggle={(e) => setOpen((e.currentTarget as HTMLDetailsElement).open)}>
-      <summary className="cursor-pointer select-none px-3 py-2 text-xs font-semibold text-muted hover:text-ink">Canvas <span className="font-normal">(lo que {name} publicó para que lo revises)</span></summary>
+      <summary className="cursor-pointer select-none px-3 py-2 text-xs font-semibold text-muted hover:text-ink">Board <span className="font-normal">(lo que {name} publicó para que lo revises)</span></summary>
       {open && <div className="border-t border-line p-3"><CanvasBoard scopeType="agent" scopeId={agentId} compact /></div>}
     </details>
   )

@@ -9,8 +9,8 @@ import { ROSTERS } from '@/lib/roster'
 import { SERVER, getJson, post, useBackOffice } from '@/lib/useBackOffice'
 import type { ArtifactDetail, TaskStatus } from '@/lib/types'
 
-const TASK_STATUS: Record<TaskStatus, string> = { todo: 'Por hacer', doing: 'En curso', blocked: 'Atorada', review: 'En revisión', done: 'Aprobada' }
-const SCOPE_LABEL = { workspace: 'Proyecto', team: 'Equipo', agent: 'Agente' } as const
+const TASK_STATUS: Record<TaskStatus, string> = { backlog: 'Backlog', cancelled: 'Cancelada', todo: 'Por hacer', doing: 'En curso', blocked: 'Atorada', review: 'En revisión', done: 'Aprobada' }
+const SCOPE_LABEL = { workspace: 'Empresa', team: 'Equipo', agent: 'Agente' } as const
 
 // Detalle de un artefacto: vista de la versión elegida, versiones, hilo de comentarios y la decisión de la persona.
 // Aprobar el artefacto NO cierra su tarea: la tarea se aprueba aparte (botón propio, igual que en Tareas).
@@ -51,7 +51,7 @@ export default function CanvasDetail({ id, onClose }: { id: string; onClose: () 
   const approveTask = () => task && run(() => post(`/api/human/tasks/${task.id}/approve`, { by: 'tú' }), false)
 
   return (
-    <Modal title={a ? `Canvas: ${a.title}` : 'Canvas'} onClose={onClose} wide>
+    <Modal title={a ? `Boards: ${a.title}` : 'Boards'} onClose={onClose} wide>
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-4 py-3">
         <div className="min-w-0">
           <div className="label">Canvas · {a ? (a.is_home ? 'Inicio del proyecto' : a.scope_type === 'workspace' ? SCOPE_LABEL.workspace : `${SCOPE_LABEL[a.scope_type]}: ${scopeName}`) : ''}</div>

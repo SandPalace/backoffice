@@ -21,7 +21,7 @@ Start a team's work with its lead; the lead delegates inside its team.
 | marketing-team | `cmo` | Full marketing cycle for the client's business. |
 | sales-team | `sales-lead` | Sets up your offer + scoring rubric (`ventas/`), prepares replies to pasted messages or to your WhatsApp inbox (drafts only, the person sends), finds businesses on Google Maps (CSV + optional Leads), scores prospects, Leads Kanban, follow-up drafts, proposals. Optional OpenWA setup (`openwa-setup`): several WhatsApp numbers; agents read chats and send only with the person's OK on each message. |
 | collections-team | `collections-lead` | Portfolio, reconciliation, collection drafts. |
-| executive-team | `ceo` (priorities, cross-area conflicts) / `cfo` (money) / `operations-chief` (the COO of the person's business: processes, cadence, bottlenecks; not the Assistant `coo`) | Decisions the owner signs. |
+| executive-team | `ceo` (company kickoff with the C-board checklist `company-kickoff`: migration, knowledge base `company/`, status dashboard, plan; priorities, cross-area conflicts) / `cfo` (money) / `operations-chief` (the COO of the person's business: processes, cadence, bottlenecks; not the Assistant `coo`) | Decisions the owner signs. |
 | finance-team | `controller` (SMB books, revenue ledger of sales/collections/IVA, statements, monthly close, accountant package) / `personal-finance-advisor` (household budget, debts, savings) | Indicative finance and tax guidance only: every tax item is validated with the person's accountant; strategy and the 13-week cash forecast stay with executive-team `cfo`. |
 | dev-team | `tech-lead` | Websites, stores and apps; splits work among its engineers. |
 

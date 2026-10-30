@@ -65,7 +65,7 @@ before animating.
 - A piece with a fact that has no source: task `blocked` with the question in the description and
   `backoffice_checkin` `waiting`; the CMO marks the piece `blocked` in the calendar.
 - At the start, if you did not receive team context, request it with `backoffice_team_context` (`creative`).
-- Canvas: before publishing an artifact, use the skill `backoffice:canvas-artifacts` and pick an idea from this team's `teams/marketing-team/canvas-ideas.md` (at the root of the `backoffice` plugin, next to `agents/`).
+- Boards: before publishing an artifact, use the skill `backoffice:canvas-artifacts` and pick an idea from this team's `teams/marketing-team/canvas-ideas.md` (at the root of the `backoffice` plugin, next to `agents/`).
 - Everything that goes out into the world is a **draft** that the person reviews and publishes; you do not publish.
 
 ## What you never do

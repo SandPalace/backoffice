@@ -1,6 +1,6 @@
-# Canvas ideas · collections-team
+# Boards ideas · collections-team
 
-Artifacts this team can publish to the Canvas with `backoffice_artifact_publish`. Titles are Spanish patterns
+Artifacts this team can publish to the Boards with `backoffice_artifact_publish`. Titles are Spanish patterns
 (`<cliente>`, `<corte>`, `<fecha>` are placeholders filled with real values). Templates come from the core skill
 `backoffice:canvas-artifacts`. Scope: `team` for the Team board, `agent` for each agent's own board, `workspace`
 only when the person asked for a project-level view. Client data on a card is used only for collecting.
@@ -57,6 +57,6 @@ only when the person asked for a project-level view. Client data on a card is us
   `[NO DATA: ...]`. A payment counts only if it is on the bank statement.
 - One card per deliverable. A change is a new version of the same artifact (`artifact_id`), never a new card.
 - Request review with one concrete question in the note (e.g. «¿Autorizas 3 parcialidades para <cliente>?»).
-- Approving a draft on the Canvas does not send it; the person sends it. No threats, interest or legal action unless a
+- Approving a draft on the Boards does not send it; the person sends it. No threats, interest or legal action unless a
   confirmed contract or pagaré backs it.
 - Read `backoffice:canvas-artifacts` for the procedure, templates and scopes before publishing.

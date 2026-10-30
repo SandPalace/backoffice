@@ -33,12 +33,19 @@ if [ -z "${BACKOFFICE_HOME:-}" ] && [ -d "$HOME/.agentos" ] && [ ! -d "$REPO/dat
 if [ -z "${BACKOFFICE_ROOT:-}" ] && [ -d "$HOME/AgentOS" ] && [ ! -d "$REPO/workspaces" ]; then BACKOFFICE_ROOT="$HOME/AgentOS"; fi
 BACKOFFICE_HOME="${BACKOFFICE_HOME:-$REPO/data}"
 BACKOFFICE_ROOT="${BACKOFFICE_ROOT:-$REPO/workspaces}"
-PORT="${BACKOFFICE_PORT:-4780}"
-WEB_PORT="${BACKOFFICE_WEB_PORT:-4781}"
+env_get1() { [ -f "$BACKOFFICE_HOME/.env" ] && grep -E "^$1=" "$BACKOFFICE_HOME/.env" | tail -1 | cut -d= -f2- | sed -e 's/^"//' -e 's/"$//' -e "s/^'//" -e "s/'\$//"; }
+# data/.env escrito antes del cambio de nombre tiene AGENTOS_*: vale igual que BACKOFFICE_* (una versión).
+env_get() { local v; v="$(env_get1 "$1")"; [ -z "$v" ] && case "$1" in BACKOFFICE_*) v="$(env_get1 "AGENTOS_${1#BACKOFFICE_}")" ;; esac; printf '%s' "$v"; }
+# Puertos de ESTE Back Office: los elige el instalador y viven en data/.env (cada empresa en su carpeta tiene los suyos:
+# 4780/4781, 4782/4783, …). Una variable BACKOFFICE_PORT / BACKOFFICE_WEB_PORT puesta a mano gana.
+PORT="${BACKOFFICE_PORT:-$(env_get BACKOFFICE_PORT)}"; PORT="${PORT:-4780}"
+WEB_PORT="${BACKOFFICE_WEB_PORT:-$(env_get BACKOFFICE_WEB_PORT)}"; WEB_PORT="${WEB_PORT:-4781}"
 RUN="$BACKOFFICE_HOME/run"; LOGS="$BACKOFFICE_HOME/logs"
 SERVER_JS="$REPO/plugins/backoffice/server/src/server.mjs"
 NEXT_BIN="$REPO/web/node_modules/next/dist/bin/next"
-export BACKOFFICE_PORT="$PORT" BACKOFFICE_HOME BACKOFFICE_ROOT
+export BACKOFFICE_PORT="$PORT" BACKOFFICE_WEB_PORT="$WEB_PORT" BACKOFFICE_HOME BACKOFFICE_ROOT
+# Empresa de esta carpeta (el servidor la usa para saber qué plugin es el suyo: backoffice-<slug>).
+_slug="$(env_get BACKOFFICE_COMPANY_SLUG)"; [ -n "$_slug" ] && export BACKOFFICE_COMPANY_SLUG="$_slug"; unset _slug
 
 say() { printf '%s\n' "$*"; }
 healthy() { curl -fsS -m 2 "http://127.0.0.1:$PORT/health" >/dev/null 2>&1; }
@@ -59,7 +66,7 @@ cmd_start() {
   if [ ! -d "$REPO/web/.next" ]; then say "Falta compilar la web. Corre ./install.sh primero."; exit 1; fi
   if healthy; then say "Servidor ya estaba corriendo (puerto $PORT)."
   else
-    if [ -n "$(port_pid "$PORT")" ]; then say "El puerto $PORT está ocupado por otro programa. Ciérralo o usa BACKOFFICE_PORT=otro-puerto ./bin/backoffice start."; exit 1; fi
+    if [ -n "$(port_pid "$PORT")" ]; then say "El puerto $PORT está ocupado por otro programa (¿otro Back Office?). Ciérralo o cambia BACKOFFICE_PORT y BACKOFFICE_WEB_PORT en data/.env y corre ./bin/backoffice update."; exit 1; fi
     nohup node "$SERVER_JS" >>"$LOGS/server.log" 2>&1 </dev/null &
     echo $! >"$RUN/server.pid"; disown 2>/dev/null || true
     for _ in $(seq 1 40); do healthy && break; sleep 0.25; done
@@ -68,7 +75,7 @@ cmd_start() {
   fi
   if web_up; then say "Oficina web ya estaba corriendo (puerto $WEB_PORT)."
   else
-    if [ -n "$(port_pid "$WEB_PORT")" ]; then say "El puerto $WEB_PORT está ocupado por otro programa. Usa BACKOFFICE_WEB_PORT=otro-puerto ./bin/backoffice start."; exit 1; fi
+    if [ -n "$(port_pid "$WEB_PORT")" ]; then say "El puerto $WEB_PORT está ocupado por otro programa (¿otro Back Office?). Cambia BACKOFFICE_WEB_PORT en data/.env y corre ./bin/backoffice update."; exit 1; fi
     # Only node goes to the background (not a subshell that would keep this command's output open: Claude waits on it).
     (cd "$REPO/web" || exit 1; nohup node "$NEXT_BIN" start -p "$WEB_PORT" -H 127.0.0.1 >>"$LOGS/web.log" 2>&1 </dev/null & echo $! >"$RUN/web.pid")
     for _ in $(seq 1 80); do web_up && break; sleep 0.25; done
@@ -91,20 +98,19 @@ cmd_stop() { stop_one "Oficina web" "$RUN/web.pid" "$WEB_PORT"; stop_one "Servid
 wa_port() { local u="${BACKOFFICE_WA_URL:-$(env_get BACKOFFICE_WA_URL)}"; u="${u:-http://127.0.0.1:8002}"; u="${u##*:}"; u="${u%%/*}"; case "$u" in ''|*[!0-9]*) echo 8002 ;; *) echo "$u" ;; esac; }
 
 cmd_status() {
-  healthy && say "Servidor:      corriendo (puerto $PORT)" || say "Servidor:      detenido"
-  web_up  && say "Oficina web:   corriendo -> http://localhost:$WEB_PORT" || say "Oficina web:   detenida"
+  healthy && say "Servidor:      corriendo (puerto $PORT)" || say "Servidor:      detenido (puerto $PORT)"
+  web_up  && say "Oficina web:   corriendo -> http://localhost:$WEB_PORT" || say "Oficina web:   detenida (puerto $WEB_PORT)"
   local wp wh; wp="$(wa_port)"; wh="$(curl -fsS -m 2 "http://127.0.0.1:$wp/health" 2>/dev/null || true)"
   if [ -z "$wh" ]; then say "WhatsApp:      detenido (opcional: ./bin/backoffice whatsapp)"
   elif printf '%s' "$wh" | grep -q '"connected":true'; then say "WhatsApp:      conectado (puerto $wp)"
   else say "WhatsApp:      corriendo, esperando que escanees el QR (puerto $wp)"; fi
+  local co; co="$(env_get BACKOFFICE_COMPANY)"
+  [ -n "$co" ] && say "Empresa:       $co (plugin backoffice-$(env_get BACKOFFICE_COMPANY_SLUG))"
   say "Repo: $REPO"
 }
 
 # ---------- WhatsApp (opcional, no oficial) ----------
 WA_VERSION="5.6.2"   # @open-wa/wa-automate fijado: el CLI cambia rápido entre versiones
-env_get1() { [ -f "$BACKOFFICE_HOME/.env" ] && grep -E "^$1=" "$BACKOFFICE_HOME/.env" | tail -1 | cut -d= -f2- | sed -e 's/^"//' -e 's/"$//' -e "s/^'//" -e "s/'\$//"; }
-# data/.env escrito antes del cambio de nombre tiene AGENTOS_*: vale igual que BACKOFFICE_* (una versión).
-env_get() { local v; v="$(env_get1 "$1")"; [ -z "$v" ] && case "$1" in BACKOFFICE_*) v="$(env_get1 "AGENTOS_${1#BACKOFFICE_}")" ;; esac; printf '%s' "$v"; }
 rand_hex() { node -e 'process.stdout.write(require("crypto").randomBytes(24).toString("hex"))'; }
 
 wa_ensure_env() {
@@ -187,9 +193,10 @@ cmd_update() {
   # Un solo plugin `backoffice`: quita los viejos (agentos@agentos, los 7 de antes) si siguen, instala/actualiza
   # backoffice@backoffice, corrige ~/.claude/settings.json y Claude Desktop y, si quedaba algo con el nombre AgentOS,
   # respalda primero y lo renombra aquí mismo (data/agentos.db, variables, agentes editados). Idempotente.
-  say "4/4 Actualizando el plugin backoffice en Claude (y migrando lo que quede con el nombre AgentOS)..."
+  # Con empresa (BACKOFFICE_COMPANY en data/.env) también regenera e instala/actualiza su plugin backoffice-<empresa>.
+  say "4/4 Actualizando el plugin de Back Office en Claude (y migrando lo que quede con el nombre AgentOS)..."
   node "$REPO/scripts/migrate-plugins.mjs" || say "Aviso: la migración de plugins no terminó. Vuelve a correr ./bin/backoffice update o mira «Actualizar» en CLAUDE.md."
-  node "$REPO/scripts/build-mcpb.mjs" >/dev/null 2>&1 || true   # dist/backoffice.mcpb (extensión de Claude Desktop, respaldo)
+  node "$REPO/scripts/build-mcpb.mjs" >/dev/null 2>&1 || true   # dist/backoffice[-<empresa>].mcpb (extensión de Claude Desktop, respaldo)
   say "Listo. Reinicia tus sesiones de Claude (y Claude Desktop) para cargar los cambios."
   [ "$was_web" = 1 ] && cmd_start
 }

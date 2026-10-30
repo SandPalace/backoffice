@@ -1,6 +1,6 @@
 'use client'
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react'
-import type { FilesEvent, Lead, Session, StorageStatus, SystemAgent, Task, Team, Workspace } from './types'
+import type { Epic, FilesEvent, Lead, Session, Sprint, StorageStatus, Story, SystemAgent, Task, Team, Workspace } from './types'
 
 // Same origin: in the browser the API is this page's own `/api/*` (next.config.mjs proxies it to the local server), so
 // the session cookie is first-party and no browser (Cowork's embedded one included) has to call another port.
@@ -52,6 +52,9 @@ export interface BackOfficeState {
   sessions: Session[]
   tasks: Task[]
   leads: Lead[]
+  epics: Epic[]
+  stories: Story[]
+  sprints: Sprint[]
   /** Increments on every WhatsApp SSE event (`wa_message` / `wa_draft`): components refetch when it changes. */
   waTick: number
   /** Increments on every Canvas SSE event (`canvas`): boards and the detail refetch when it changes. */
@@ -85,6 +88,9 @@ export function useBackOfficeState(): BackOfficeState {
   const [sessions, setSessions] = useState<Session[]>([])
   const [tasks, setTasks] = useState<Task[]>([])
   const [leads, setLeads] = useState<Lead[]>([])
+  const [epics, setEpics] = useState<Epic[]>([])
+  const [stories, setStories] = useState<Story[]>([])
+  const [sprints, setSprints] = useState<Sprint[]>([])
   const [teams, setTeams] = useState<Team[]>([])
   const [waTick, setWaTick] = useState(0)
   const [canvasTick, setCanvasTick] = useState(0)
@@ -105,13 +111,9 @@ export function useBackOfficeState(): BackOfficeState {
 
   // Restore the persisted workspace before opening the first stream.
   useEffect(() => {
-    // A direct link (`?ws=<id>`, e.g. /canvas?ws=acme&artifact=A-…) wins over the remembered project.
-    let saved = new URLSearchParams(window.location.search).get('ws')
-    try {
-      if (saved) localStorage.setItem(LS_KEY, saved)
-      else saved = localStorage.getItem(LS_KEY)
-    } catch { /* storage blocked */ }
-    if (saved) { currentWorkspace = saved; setWorkspaceId(saved) }
+    // One Back Office = one company (2026-10-29): the web always shows `default`. Old `?ws=` links and a remembered
+    // project from a multi-project install are ignored; their data is brought in with scripts/import-agentos.mjs.
+    try { localStorage.removeItem(LS_KEY) } catch { /* storage blocked */ }
     setHydrated(true)
   }, [])
 
@@ -126,7 +128,7 @@ export function useBackOfficeState(): BackOfficeState {
     let closed = false
     let retry: ReturnType<typeof setTimeout>
     setReady(false)
-    setSessions([]); setTasks([]); setLeads([]); setTeams([]); setCoo(null)
+    setSessions([]); setTasks([]); setLeads([]); setTeams([]); setCoo(null); setEpics([]); setStories([]); setSprints([])
     const fallbackIfGone = async () => {
       try {
         const list: Workspace[] = await (await apiFetch(`${SERVER}/api/workspaces`)).json()
@@ -146,6 +148,9 @@ export function useBackOfficeState(): BackOfficeState {
         setSessions(d.sessions)
         setTasks(d.tasks)
         setLeads(d.leads ?? [])
+        setEpics(d.epics ?? [])
+        setStories(d.stories ?? [])
+        setSprints(d.sprints ?? [])
         setTeams(d.teams ?? [])
         setCoo(d.system?.coo ?? null)
         setConn('live')
@@ -158,6 +163,12 @@ export function useBackOfficeState(): BackOfficeState {
       on('task_deleted', (d) => setTasks((l) => l.filter((x) => x.id !== d.id)))
       on('lead', (d) => setLeads((l) => upsert(l, d)))
       on('lead_deleted', (d) => setLeads((l) => l.filter((x) => x.id !== d.id)))
+      on('epic', (d) => setEpics((l) => upsert(l, d)))
+      on('epic_deleted', (d) => setEpics((l) => l.filter((x) => x.id !== d.id)))
+      on('story', (d) => setStories((l) => upsert(l, d)))
+      on('story_deleted', (d) => setStories((l) => l.filter((x) => x.id !== d.id)))
+      on('sprint', (d) => setSprints((l) => upsert(l, d)))
+      on('sprint_deleted', (d) => setSprints((l) => l.filter((x) => x.id !== d.id)))
       on('wa_message', () => setWaTick((n) => n + 1))
       on('wa_draft', () => setWaTick((n) => n + 1))
       on('canvas', () => setCanvasTick((n) => n + 1))
@@ -217,7 +228,7 @@ export function useBackOfficeState(): BackOfficeState {
   }, [reloadWorkspaces, setWorkspace])
 
   const workspace = workspaces.find((w) => w.id === workspaceId) ?? null
-  return { sessions, tasks, leads, waTick, canvasTick, teams, coo, conn, ready, workspaces, workspace, workspaceId, setWorkspace, createWorkspace, renameWorkspace, archiveWorkspace, storage, storageError, refreshStorage, subscribeFiles }
+  return { sessions, tasks, leads, epics, stories, sprints, waTick, canvasTick, teams, coo, conn, ready, workspaces, workspace, workspaceId, setWorkspace, createWorkspace, renameWorkspace, archiveWorkspace, storage, storageError, refreshStorage, subscribeFiles }
 }
 
 export function useBackOffice(): BackOfficeState {

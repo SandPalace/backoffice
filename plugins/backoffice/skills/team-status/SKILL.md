@@ -11,8 +11,10 @@ allowed-tools: mcp__plugin_backoffice_backoffice
 1. Call `backoffice_projects`, then `backoffice_overview` for each project the report covers (`workspace` = its id; keep projects separate in the report). No response: say so and do not write the report.
 2. For any task detail you need (titles, dates), use `backoffice_task_list`. Every figure in the report
    comes from one of these two tools; what is not there is "no data".
-3. **Needs your attention** = `needs_you` (review, blocked) plus the agents with status `waiting`. Order:
-   pending review, blocked, waiting. Each item: task, agent, what is needed from the person.
+3. **Needs your attention** = `needs_you` (review, blocked; a task with `cancel_proposal` asks the person to cancel it) plus the
+   agents with status `waiting` and `agile.sprints_in_review` (a sprint report waiting for «Completar sprint»). Order:
+   pending review, blocked, waiting. Each item: task, agent, what is needed from the person. If `agile.active_sprint` exists,
+   add one line: sprint name, goal, end date and progress (`progress.tasks.done`/`total`, percent).
 4. **What each agent is doing**: only teams with `active: true`. Per member: name, status and their open task
    (or "no open tasks"). If `loose_sessions` brings sessions without a team, add them in one line.
    Optionally add `roster.working_now` agents that are not in the active team (they are working outside it).

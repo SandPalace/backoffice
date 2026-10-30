@@ -1,14 +1,14 @@
 ---
 name: canvas-artifacts
-description: Builds a Canvas artifact from a ready-made template (report, options, dashboard, checklist, timeline, gallery, table, document) filled only with real data, self-checks it and publishes it to the right board (agent, team or project) with a review question. Use it before publishing anything to the canvas with backoffice_artifact_publish, when the person requested changes on an artifact you published, and to build or update the project home shown in the Inicio tab (normally the project's lead agent) («arma el inicio», «actualiza el inicio»).
+description: Builds a Boards artifact from a ready-made template (report, options, dashboard, checklist, timeline, gallery, table, document) filled only with real data, self-checks it and publishes it to the right board (agent, team or project) with a review question. Use it before publishing anything to the canvas with backoffice_artifact_publish, when the person requested changes on an artifact you published, and to build or update the project home shown in the Inicio tab (normally the project's lead agent) («arma el inicio», «actualiza el inicio»).
 allowed-tools: Bash, mcp__plugin_backoffice_backoffice
 ---
 
-# Canvas artifacts
+# Boards artifacts
 
 Never start an artifact from a blank page. Every artifact starts from one of the templates in the `templates/`
 folder next to this file (the skill's base directory is shown when it loads). They are single-file, offline,
-light/dark, mobile and print friendly, with Spanish labels and `{{TOKEN}}` placeholders. The Canvas shows html in a
+light/dark, mobile and print friendly, with Spanish labels and `{{TOKEN}}` placeholders. The Boards shows html in a
 sandbox with no network: anything external (fonts, CDN, images by URL, fetch) simply does not load.
 
 ## Templates
@@ -80,7 +80,7 @@ Each template starts with an HTML comment with its exact rules. Read it before f
 | Roadmap del proyecto | `timeline.html` | Fases con fechas acordadas, hitos y dependencias |
 | Riesgos y bloqueos | `checklist.html` | Cada riesgo con estado, responsable y qué lo destraba |
 | Resumen ejecutivo para el cliente | `report.html` | Lo que el cliente debe saber, sin detalle interno |
-| Entregables aprobados | `table.html` | Entregable, fecha, quién aprobó (solo aprobaciones reales del Canvas) |
+| Entregables aprobados | `table.html` | Entregable, fecha, quién aprobó (solo aprobaciones reales del Boards) |
 | Presupuesto vs real | `dashboard.html` | KPIs y barras por rubro con montos de los archivos del proyecto |
 | KPIs del proyecto | `dashboard.html` | Las métricas acordadas, con su fuente y fecha de corte |
 | Minuta de reunión | `document.md` | Asistentes, acuerdos, responsables y fechas dichas en la reunión |
@@ -100,7 +100,7 @@ when asked. It is never reviewed or approved; the person comments on it and you 
    `backoffice_file_list` (a brief or objective file, if any) and `backoffice_profile_read` (the person's goals).
 3. **Template:** `report.html` by default; `dashboard.html` when the project has numbers worth charting. Sections, in this
    order: **Objetivo** (only if stated in a file or by the person), **Equipos y agentes**, **Tareas en curso / por revisar**,
-   **Entregables aprobados** (only real Canvas approvals or approved tasks), **Próximos pasos** (each with who does it),
+   **Entregables aprobados** (only real Boards approvals or approved tasks), **Próximos pasos** (each with who does it),
    **Decisiones pendientes del dueño**. A gap is `[NO DATA: ...]`; never invent a goal, figure or date. Title in Spanish,
    e.g. «Inicio · <project name>». No Bash? Read the template with Read, fill it in memory and publish it inline.
 4. **Self-check** (step 4 above), then publish: `backoffice_artifact_publish` with your own `agent` id, `home: true`, `workspace`,
