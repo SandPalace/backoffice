@@ -19,11 +19,14 @@
 //
 //   node scripts/build-company-plugin.mjs [--name <empresa>] [--slug <s>] [--out <dir>] [--register] [--json]
 //     --register  also `claude plugin marketplace add|update` + `claude plugin install|update backoffice-<slug>@backoffice-<slug>`
-import { existsSync, readFileSync, writeFileSync, mkdirSync, readdirSync, rmSync, copyFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync, mkdirSync, readdirSync, rmSync, copyFileSync, createWriteStream } from "node:fs";
+import { Readable } from "node:stream";
+import { pipeline } from "node:stream/promises";
 import { createHash } from "node:crypto";
 import { join, dirname, resolve, relative, extname, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import * as mp from "./migrate-plugins.mjs";
+import { zipStream } from "../plugins/backoffice/server/src/zip.mjs";
 import { companyOf, slugify, validSlug, portsOf, dataDir, workspacesDir, REPO } from "./company.mjs";
 
 export const OUT_DIR = (repo = REPO) => join(repo, "dist", "company-plugin");
@@ -229,6 +232,17 @@ export async function offerRemoveGeneric(env = process.env, repo = REPO, answer 
   return "removed";
 }
 
+// dist/backoffice-<slug>.zip: the same plugin as one file, for Claude Desktop's plugin upload (Chat/Cowork «Agregar
+// marketplace» only takes URLs and GitHub repos). Files only, plugin.json at .claude-plugin/ in the zip root.
+export async function zipCompanyPlugin(built, repo = REPO) {
+  const file = join(repo, "dist", `${built.plugin}.zip`);
+  const walk = (d, rel = "") => readdirSync(d, { withFileTypes: true }).flatMap((e) =>
+    e.isDirectory() ? walk(join(d, e.name), `${rel}${e.name}/`) : [{ name: `${rel}${e.name}`, stream: Readable.from([readFileSync(join(d, e.name))]) }]);
+  mkdirSync(dirname(file), { recursive: true });
+  await pipeline(Readable.from(zipStream(walk(built.dir))), createWriteStream(file));
+  return file;
+}
+
 const arg = (args, f) => {
   const i = args.indexOf(f);
   return i >= 0 ? args[i + 1] : undefined;
@@ -249,6 +263,8 @@ export async function main(args = process.argv.slice(2), env = process.env, repo
   const built = buildCompanyPlugin(c, { repo, out: outArg ? resolve(outArg) : OUT_DIR(repo) });
   if (args.includes("--json")) console.log(JSON.stringify(built));
   else say(`Plugin de ${c.name}: ${built.plugin} ${built.version} en ${built.out}`);
+  const zip = await zipCompanyPlugin(built, repo);
+  if (!args.includes("--json")) say(`Para subirlo en Claude Desktop (Personalizar → Plugins): ${zip}`);
   if (!args.includes("--register")) return 0;
   return registerCompanyPlugin(built, env) ? 0 : 1;
 }
