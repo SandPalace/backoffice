@@ -13,7 +13,7 @@ update, check or repair Back Office («revisa y repara mi Back Office», «actua
 - **One Back Office = one company.** This folder is a copy of the public repo (agent and skill templates) that the person
   adapts to ONE company. There is no project selector: everything lives in the single workspace `default` (the name shown
   top-left is the company; «Renombrar» changes it). Another company = another clone in its own folder
-  (`Documentos/<Empresa>-BackOffice`), its own data, its own CEO, its own plugin `backoffice-<slug>` and its own port pair
+  (`<project folder>/.backoffice`, e.g. `~/Documents/Acme/.backoffice`), its own data, its own CEO, its own plugin `backoffice-<slug>` and its own port pair
   (the installer picks the next free one: 4780/4781, 4782/4783, …). Several can run at the same time. Never copy one
   company's data into another's Back Office.
 - **The pieces:** Claude (Desktop Chat/Cowork/Code or the terminal) runs the agents; the plugin `backoffice` gives them their
@@ -30,8 +30,9 @@ update, check or repair Back Office («revisa y repara mi Back Office», «actua
 
 ## Fresh install («Instalación nueva», «instala Back Office para mi empresa»)
 
-1. The folder must be a fresh clone of `https://github.com/SandPalace/backoffice.git` in `~/Documents/<Empresa>-BackOffice`
-   (Windows `$HOME\Documents\<Empresa>-BackOffice`). If the target exists, stop and ask; never clone over it.
+1. The folder must be a fresh clone of `https://github.com/SandPalace/backoffice.git` in `.backoffice` inside the
+   company's project folder (e.g. `~/Documents/Acme/.backoffice`; Windows `$HOME\Documents\Acme\.backoffice`). If the target
+   exists, stop and ask; never clone over it. If the project folder is a git repo, add `.backoffice/` to its `.gitignore`.
 2. Run `./install.sh` (Windows `.\install.ps1`) from this folder. It asks the company name (saved as `BACKOFFICE_COMPANY` +
    slug in `data/.env`, with a free port pair) and the office user and password: THEY type them; never read or print
    `data/.env`. Without a terminal, ask the company name and pass it as `BACKOFFICE_COMPANY="<Empresa>" ./install.sh`.
@@ -234,8 +235,8 @@ agentos`, `claude plugin marketplace add "$PWD"`, `claude plugin install backoff
 ## Moving Back Office to Documents («mueve Back Office a Documentos», «mi Back Office está en otra carpeta»)
 
 For an install outside `~/Documents` (the Oct 15 version used `~/AgentOS-app`). Below, OLD = this folder's current path,
-NEW = `$HOME/Documents/<Empresa>-BackOffice` (Windows `[Environment]::GetFolderPath('MyDocuments')` + `\<Empresa>-BackOffice`;
-ask the company name; never `Documents/AgentOS`, which is the old AgentOS the person imports from; Documents may be in OneDrive). Explain the plan in two lines and get the person's OK first.
+NEW = `<the company's project folder>/.backoffice` (ask which folder; if it is a git repo add `.backoffice/` to its
+`.gitignore`; never `Documents/AgentOS`, which is the old AgentOS the person imports from; Documents may be in OneDrive). Explain the plan in two lines and get the person's OK first.
 Moving keeps everything: the folder carries `data/` and `workspaces/` with it.
 
 1. **Stop it.** From OLD: `./bin/backoffice stop`; an Oct 15 install may also have the global command: `backoffice stop`
