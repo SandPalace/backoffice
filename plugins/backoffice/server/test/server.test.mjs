@@ -189,7 +189,8 @@ test('equipos: crear, activar y adjuntar contexto por agente', async () => {
     assert.equal(a.body.members[1].avatar, null) // sin elegir: la del roster
     assert.equal((await call('POST', '/api/teams', { name: 'Y', members: [{ agent_id: 'cmo', avatar: 21 }] })).status, 400)
     assert.equal((await call('POST', '/api/teams', { name: 'X', members: [{ agent_id: 'cmo', display_name: 'x'.repeat(41) }] })).status, 400)
-    assert.equal((await call('GET', '/api/context?agent=analyst')).body.context, null) // no está en el activo
+    assert.match((await call('GET', '/api/context?agent=analyst')).body.context, /Gastos/) // otro equipo: también recibe su contexto
+    assert.equal((await call('GET', '/api/context?agent=researcher')).body.context, null) // en ningún equipo
 
     // el hook de SubagentStart devuelve additionalContext; los demás agentes no reciben nada
     const r = await fetch(app.server.address() ? `http://127.0.0.1:${app.server.address().port}/hooks/SubagentStart` : '', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ session_id: 's1', agent_type: 'cmo' }) })
@@ -197,10 +198,10 @@ test('equipos: crear, activar y adjuntar contexto por agente', async () => {
     assert.equal(hook.hookSpecificOutput.hookEventName, 'SubagentStart')
     assert.match(hook.hookSpecificOutput.additionalContext, /San Nicolás/)
 
-    // cambiar de equipo activo
+    // cambiar de equipo activo (solo el orden en la oficina)
     await call('POST', `/api/teams/${b.body.id}/activate`)
     assert.match((await call('GET', '/api/context?agent=analyst')).body.context, /Gastos/)
-    assert.equal((await call('GET', '/api/context?agent=cmo')).body.context, null)
+    assert.match((await call('GET', '/api/context?agent=cmo')).body.context, /San Nicolás/) // los demás equipos siguen trabajando
 
     // editar y validar
     const u = await call('PATCH', `/api/teams/${b.body.id}`, { name: 'Administración', members: [{ agent_id: 'analyst', context: 'Gastos y agenda' }] })

@@ -26,7 +26,8 @@ Go one step at a time; confirm they managed it before moving on to the next. Exp
 4. **Set names, avatars and context.** Each agent can have its own name and a face (avatar) to
    choose. The context is a short text per agent (up to 8,000 characters): what the business does,
    how it talks to its customers, which prices or rules matter. The clearer it is, the better the agent works.
-5. **Activate the team.** With the activate button, the team appears in the office and its agents receive their context.
+5. **Add the other teams.** A company uses several teams at once (marketing, sales, finance…): every team works and its
+   agents receive their context. «Activo» only chooses which team appears first in the office.
 6. **Upload your files in the Archivos tab.** It is the workspace's file cabinet in the web: the person uploads their own
    files there (logo, price list, PDFs, spreadsheets), organizes them in folders, edits text files, downloads everything as a ZIP
    and sends things to the trash (nothing is lost right away). The agents read what is uploaded there, so there is never a need to
@@ -55,7 +56,8 @@ When step 7 is done, summarize what they did and propose the next task.
 - **Do the agents send emails or collection notices?** No. Everything that goes out into the world is a draft that you review and send yourself.
 - **Which agent do I use for X?** Look in the roster (`backoffice_roster`), including agents not in the active team, and recommend one; if it is unclear, offer two with the difference.
 - **Can I change an agent's name or face?** Yes, in Teams; the change is per team.
-- **Can I have several teams?** Yes; activate the one you want to see. The others keep their context.
+- **Can I have several teams?** Yes, as many as the company needs, all working at once (marketing, sales, finance…). There
+  is one company per Back Office, not one team: «Activo» only puts that team first in the office.
 - **Something in Back Office fails or I have an idea for it.** Prepare a report with `backoffice_issue_report` (`bug` or
   `feature`, and your own agent id in `agent`: it is logged as the reporter) and give the person the GitHub link it returns; they review it and press «Submit new issue». Nothing is sent without their click.
 - **Connect Back Office to Chat and Cowork (no `backoffice_*` tools here).** A plugin installed from the terminal is for Claude

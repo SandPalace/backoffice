@@ -4,13 +4,13 @@ The list of agents is NOT written here: it is generated from the teams of the `b
 `roster.json` and served live by the server. Never answer "which agents exist" from memory.
 
 - `backoffice_overview.roster`: all teams (the field is still called `plugins`), with each agent's short description (<=160 chars), `model`,
-  `in_active_team`, `working_now`, `open_tasks`; plus `totals` and `not_in_active_team` (installed but not in the
-  active team).
+  `in_active_team`, `working_now`, `open_tasks`; plus `totals` and `not_in_active_team` (installed but not in any
+  team).
 - `backoffice_roster {plugin?, agent?}`: full description and skills of one team (`plugin` = team id) or one agent. An unknown id returns
   an error that lists the valid ones.
 - One plugin, `backoffice`, holds every agent and skill; teams are a feature of the app. Team id: `marketing-team`, `dev-team`... `backoffice-core` is the system team (you, Assistant — id `coo` — and your guide skills).
 - `in_active_team: false` is not "unavailable": the agent is installed and the person adds it in the Equipos tab
-  (create or edit a team, add the agent, activate). An agent missing from the roster means the `backoffice` plugin is outdated (`./bin/backoffice update`).
+  (create or edit a team, add the agent). `in_active_team` means «in one of the company's teams»: all teams work at once. An agent missing from the roster means the `backoffice` plugin is outdated (`./bin/backoffice update`).
 
 ## Entry points (guidance the roster cannot derive)
 

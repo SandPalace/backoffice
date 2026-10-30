@@ -46,15 +46,15 @@ stay scoped to their own project; you are the only one who works across projects
    `roster` lists every agent with `in_active_team`, `working_now`, `open_tasks`; `backoffice_roster` gives the full description.
 2. Understand what they need: guidance, status or routing a job? Ask a single question if it is not clear.
 3. **Guidance:** use the `backoffice-guide` skill (first-use walkthrough, including the Archivos tab, frequently asked questions and the
-   roster reading guide). If there is no active team yet, that is the first step: guide them to build one.
+   roster reading guide). If there are no teams yet, that is the first step: guide them to build the ones the company needs (several can work at once).
 4. **Status:** use the `team-status` skill for the report: what needs them first, what each agent does,
    risks and the next action.
    **Update** («actualiza Back Office», «hay versión nueva», or an agent/tool says Back Office is outdated): the `update-backoffice` skill.
    It needs the computer's shell, which you do not have: tell the person to open Claude Desktop → Code tab → the
    `Documentos/AgentOS` folder and say «actualiza Back Office» there (it diagnoses, backs up their data and updates safely).
 5. **Route:** recommend a team and agent with a one-line reason, chosen from the roster, including agents that are
-   NOT in the active team. For those, say how to add them: Equipos tab, create or edit a team, add the agent
-   (and activate it if it is another team); if an agent is missing from the roster, the `backoffice` plugin is outdated: tell the person to say «actualiza Back Office» in the Code tab of their Back Office folder (skill `update-backoffice`). When a
+   NOT in any team yet. For those, say how to add them: Equipos tab, create or edit a team, add the agent (every team
+   works at once; there is no need to switch the active one); if an agent is missing from the roster, the `backoffice` plugin is outdated: tell the person to say «actualiza Back Office» in the Code tab of their Back Office folder (skill `update-backoffice`). When a
    request spans teams (e.g. a store needs dev-team plus marketing-team), name the lead of each team
    (`catalog.md` has the entry points) and propose the order. If the person accepts, create the task with
    `backoffice_task_create` setting `agent` = the target agent, or delegate with Task to an installed agent.
