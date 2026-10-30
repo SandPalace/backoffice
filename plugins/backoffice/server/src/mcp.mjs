@@ -186,19 +186,19 @@ const TOOLS = [
   {
     name: 'backoffice_overview',
     description:
-      'Foto del momento de Back Office: equipos, qué hace cada agente, tareas por estado, lo que espera a la persona y sesiones sueltas. Incluye `roster`: todos los equipos (campo `plugins`) y agentes instalados (descripción corta, in_active_team, working_now, open_tasks) y `not_in_active_team`. Sin `workspace` es el proyecto de la sesión; con un id de proyecto es ese proyecto; con "all" un resumen por proyecto. El Assistant empieza con backoffice_projects.',
+      'Foto del momento de Back Office: equipos, qué hace cada agente, tareas por estado, lo que espera a la persona y sesiones sueltas. Incluye `roster`: todos los equipos (campo `plugins`) y agentes instalados (descripción corta, in_team, working_now, open_tasks) y `not_in_team`. Sin `workspace` es el proyecto de la sesión; con un id de proyecto es ese proyecto; con "all" un resumen por proyecto. El Assistant empieza con backoffice_projects.',
     inputSchema: { type: 'object', properties: { workspace: WS_ALL } },
   },
   {
     name: 'backoffice_projects',
     description:
-      "Lists ALL projects (workspaces) of the owner: id, name, root folder, teams (active one marked), open / in-review / blocked task counts and agents waiting on the person. Start here when you are the Assistant (one Assistant for every project); then use the project id as `workspace` in the other tools.",
+      "Lists ALL projects (workspaces) of the owner: id, name, root folder, teams, open / in-review / blocked task counts and agents waiting on the person. Start here when you are the Assistant (one Assistant for every project); then use the project id as `workspace` in the other tools.",
     inputSchema: { type: 'object', properties: {} },
   },
   {
     name: 'backoffice_roster',
     description:
-      'Roster completo de agentes y skills instalados (no sólo los del equipo activo), con la descripción completa. Sin argumentos devuelve todos los equipos; con `plugin` (id del equipo) devuelve ese equipo (agentes + skills); con `agent` devuelve ese agente con su equipo y skills. Un id desconocido da un error claro. Léela antes de recomendar un agente.',
+      'Roster completo de agentes y skills instalados (estén o no en un equipo), con la descripción completa. Sin argumentos devuelve todos los equipos; con `plugin` (id del equipo) devuelve ese equipo (agentes + skills); con `agent` devuelve ese agente con su equipo y skills. Un id desconocido da un error claro. Léela antes de recomendar un agente.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -210,7 +210,7 @@ const TOOLS = [
   {
     name: 'backoffice_team_context',
     description:
-      'Devuelve el contexto que la persona definió para un agente en el equipo activo de Back Office. Úsala al empezar si no recibiste contexto automáticamente (por ejemplo en Cowork).',
+      'Devuelve el contexto que la persona definió para un agente en su equipo de Back Office. Úsala al empezar si no recibiste contexto automáticamente (por ejemplo en Cowork).',
     inputSchema: { type: 'object', properties: { agent: { type: 'string', description: 'Id del agente (ej. cmo)' } }, required: ['agent'] },
   },
   {

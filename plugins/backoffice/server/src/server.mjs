@@ -278,7 +278,7 @@ export function createApp({ db = openDb(), port = DEFAULT_PORT, extraRoots = [],
     if (m === 'GET' && path === '/health') return send(res, 200, { ok: true, sessions: db.prepare('SELECT COUNT(*) AS n FROM sessions').get().n })
 
     // Hooks de Claude: POST /hooks/<Evento>. Nunca bloquean. En SessionStart y SubagentStart, si el agente
-    // tiene contexto en el equipo activo, se devuelve como additionalContext y Claude lo suma a la conversación.
+    // tiene contexto en su equipo, se devuelve como additionalContext y Claude lo suma a la conversación.
     let h
     let tm
     if (m === 'POST' && (h = path.match(/^\/hooks\/([A-Za-z]+)$/))) {

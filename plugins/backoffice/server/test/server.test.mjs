@@ -174,9 +174,8 @@ test('equipos: crear, activar y adjuntar contexto por agente', async () => {
   try {
     const a = await call('POST', '/api/teams', { name: 'Marketing', members: [{ agent_id: 'cmo', display_name: ' Sofía ', avatar: 6, context: 'Vendemos casas en San Nicolás' }, { agent_id: 'creative', context: '' }] })
     assert.equal(a.status, 201)
-    assert.equal(a.body.active, true) // el primero queda activo
+    assert.equal(a.body.active, undefined) // ya no hay equipo «activo»
     const b = await call('POST', '/api/teams', { name: 'Admin', members: [{ agent_id: 'analyst', context: 'Gastos' }] })
-    assert.equal(b.body.active, false)
 
     // contexto del agente en el equipo activo (acepta el prefijo del plugin)
     let c = await call('GET', '/api/context?agent=backoffice:cmo')
@@ -213,7 +212,6 @@ test('equipos: crear, activar y adjuntar contexto por agente', async () => {
     assert.equal((await call('DELETE', `/api/teams/${b.body.id}`)).status, 200)
     const left = await call('GET', '/api/teams')
     assert.equal(left.body.length, 1)
-    assert.equal(left.body[0].active, true)
   } finally {
     await app.close()
   }
@@ -248,7 +246,7 @@ test('COO: agente del sistema con contexto propio y panorama de todos los equipo
     await call('PATCH', `/api/tasks/${t.body.id}`, { status: 'blocked' })
     const o = (await call('GET', '/api/overview')).body
     assert.equal(o.coo.display_name, 'Rafa')
-    assert.equal(o.active_team.id, team.body.id)
+    assert.equal(o.teams[0].id, team.body.id)
     const ana = o.teams[0].members.find((m) => m.agent_id === 'lead-qualifier')
     assert.equal(ana.name, 'Ana')
     assert.equal(ana.status, 'working')

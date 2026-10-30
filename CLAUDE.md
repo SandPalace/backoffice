@@ -20,8 +20,8 @@ update, check or repair Back Office («revisa y repara mi Back Office», «actua
   instructions, skills and the `backoffice_*` tools; the local server keeps tasks, leads, files and Boards in `data/`; the web
   (http://localhost:4781) is where the person watches, reviews and approves.
 - **Tabs:** Inicio (the company status page the CEO keeps current), Tareas (only the person marks `done`), **Boards**
-  (artifacts agents publish for review: dashboards, reports, drafts; tools `backoffice_artifact_*`), Leads, Equipos (which
-  teams are active), Archivos (the company's files and the knowledge base in `company/`).
+  (artifacts agents publish for review: dashboards, reports, drafts; tools `backoffice_artifact_*`), Leads, Equipos (the
+  company's teams, all available at once), Archivos (the company's files and the knowledge base in `company/`).
 - **Knowledge base:** `company/` in Archivos (`profile.md`, `facts.md`, `goals.md`, `rules.md`, `open-questions.md`), built
   by the CEO from the owner's own answers. Every agent reads it before working; facts without a source are not used.
 - **Who starts:** after install (and migration), the person opens the CEO as the main agent (`claude --agent backoffice-<slug>:ceo`

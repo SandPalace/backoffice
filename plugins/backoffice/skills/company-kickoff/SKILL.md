@@ -37,7 +37,7 @@ ticking items as they finish (`backoffice_task_update`). Check in with `backoffi
 - [ ] Company name: Back Office shows it at the top-left. If it still says «Back Office», ask the person to rename it there
       («Renombrar»); you cannot rename it yourself.
 - [ ] Teams: from what the person sells and where the work hurts, recommend at most 3 teams (Marketing, Ventas, Cobranza,
-      Finanzas, Dirección, Desarrollo web) with one line of why. The person activates them in **Equipos**; read
+      Finanzas, Dirección, Desarrollo web) with one line of why. The person creates them in **Equipos** (all are available at once); read
       `backoffice_roster` to confirm.
 - [ ] The person's profile: `backoffice_profile_read`; fill gaps with `backoffice_profile_update` only with what they said.
 
@@ -56,14 +56,14 @@ Knowledge base files (Spanish content, each fact with its source «dijo <persona
 - `company/goals.md` · 90-day goals and the 3 heaviest tasks.
 - `company/rules.md` · tone, never-say list, approvals.
 - `company/open-questions.md` · what is still missing, and who should answer it.
-Then delegate the area deep-dives (Task, only active teams): `cmo` → skill `onboarding`; `sales-lead` → `sales-setup`;
+Then delegate the area deep-dives (Task, only the teams the company has): `cmo` → skill `onboarding`; `sales-lead` → `sales-setup`;
 `cfo` / `controller` → current cash and receivables picture. Give each one `company/*.md` as input; they write in their own
 folders (`marketing/`, `ventas/`, `finance/`) and you link their files from `company/profile.md`.
 
 ### 4 · Company status dashboard (Boards → Inicio)
 - [ ] Use the skill `backoffice:canvas-artifacts` (dashboard template) and publish the company home with
       `backoffice_artifact_publish` `home: true`, `agent` = `ceo`: one HTML page «Estado de <empresa>» with
-      what the company is, active teams, open tasks / in review / blocked (from `backoffice_overview`), leads by stage
+      what the company is, its teams, open tasks / in review / blocked (from `backoffice_overview`), leads by stage
       (`backoffice_lead_list`), the known numbers WITH source and date, goals, top 3 priorities and open questions.
       No invented figures: missing = «sin dato».
 - [ ] Tell the person: «Está en Inicio (y en Boards); coméntalo ahí». Re-publish (new version) at the end of every week.

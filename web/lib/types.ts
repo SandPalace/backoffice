@@ -135,7 +135,6 @@ export interface TeamMember {
 export interface Team {
   id: string
   name: string
-  active: boolean
   members: TeamMember[]
 }
 

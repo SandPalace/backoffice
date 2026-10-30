@@ -134,7 +134,7 @@ if (isMain(import.meta.url)) {
         signal: AbortSignal.timeout(2000),
       })
       const text = await r.text()
-      if (text) process.stdout.write(text) // contexto del agente en el equipo activo (additionalContext)
+      if (text) process.stdout.write(text) // contexto del agente en su equipo (additionalContext)
     }
   } catch {}
   process.exit(0) // un hook nunca debe fallar ni bloquear a Claude
