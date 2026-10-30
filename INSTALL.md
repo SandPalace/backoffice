@@ -73,17 +73,22 @@ con `claude plugin uninstall backoffice@backoffice`. El instalador y `update` te
 
 ### B. Claude Desktop: Chat y Cowork
 
-Cowork no ve lo que se instaló con la terminal: se agrega desde Claude Desktop.
+Cowork no ve lo que se instaló con la terminal. Lo que el instalador ya hizo solo: agregó el MCP de tu empresa a la
+configuración de Claude Desktop (`claude_desktop_config.json`, en Mac y en Windows); Chat lo ve al reiniciar Claude Desktop.
 
-1. **Personalizar → Plugins → Agregar marketplace** → pega la ruta de tu carpeta `…/dist/company-plugin` (por ejemplo
-   `/Users/ana/Documents/Acme/.backoffice/dist/company-plugin`).
-2. Instala **backoffice-<empresa>** (su descripción empieza con «Back Office · <Empresa>»).
-3. Cierra y abre Claude Desktop.
+1. **Extensión: un clic, la abre tu agente.** Pídele a tu agente «instálame la extensión de Back Office en Claude Desktop»:
+   abre `dist/backoffice-<empresa>.mcpb` (Mac `open`, Windows `Start-Process`) y Claude Desktop te muestra **Instalar**; tú das
+   el clic. Se llama **«Back Office · <Empresa>»** y ya trae tu carpeta en «Carpeta de Back Office»: no la cambies. Reinicia
+   Claude Desktop. Con esto Chat y Cowork tienen las herramientas de Back Office. (A mano: Ajustes → Extensiones → Instalar
+   extensión… → ese archivo.)
+2. **Plugin con los agentes y skills, para Cowork (a mano).** **Personalizar → Plugins → Agregar marketplace** → la carpeta
+   `dist/company-plugin` de tu Back Office (tu agente te da la ruta exacta, por ejemplo
+   `/Users/ana/Documents/Acme/.backoffice/dist/company-plugin`) → instala **backoffice-<empresa>** → reinicia Claude Desktop.
+   `.backoffice` empieza con punto y está oculta: en el selector de carpetas, en Mac usa Cmd+Shift+G y pega la ruta (o
+   Cmd+Shift+. para ver las carpetas ocultas); en Windows pega la ruta en la barra de dirección.
 
-**Respaldo (si el plugin no se puede agregar o Cowork no ve las herramientas):** **Ajustes → Extensiones → Instalar
-extensión…** → elige `dist/backoffice-<empresa>.mcpb` de tu carpeta. Se llama **«Back Office · <Empresa>»** y ya trae tu
-carpeta en «Carpeta de Back Office»: no la cambies. Reinicia Claude Desktop. (Sin empresa: `dist/backoffice.mcpb` y en
-«Carpeta de Back Office» elige tu carpeta; el plugin genérico se agrega con el marketplace `SandPalace/backoffice`.)
+(Sin empresa: `dist/backoffice.mcpb`, en «Carpeta de Back Office» elige tu carpeta; el plugin genérico se agrega con el
+marketplace `SandPalace/backoffice`.)
 
 **Prueba:** en una sesión **nueva** de Chat o Cowork pregunta «¿Qué equipos tengo?» (o «¿Qué equipos y agentes tengo en Back
 Office?»). Debe contestar usando las herramientas de Back Office (no leyendo archivos) con los equipos de ESA empresa. En la

@@ -151,19 +151,22 @@ Also «Configurar el plugin y el MCP en Claude Desktop» (INSTALL.md has the Spa
 0. **Claude Code (terminal) first:** `claude plugin list` must show `backoffice-<slug>@backoffice-<slug>` enabled. If not:
    `node scripts/build-company-plugin.mjs --register` (builds `dist/company-plugin/`, `claude plugin marketplace add` +
    `install`). In `claude`: `/plugin` lists it; `/mcp` shows `plugin:backoffice-<slug>:backoffice` connected.
-1. **Plugin (recommended: agents, skills, hooks and the Back Office tools).** Claude Desktop → **Customize** (Personalizar) →
-   **Plugins** → **Add marketplace** → the folder `<this folder>/dist/company-plugin` → install **backoffice-<slug>**
-   (generic: marketplace `SandPalace/backoffice` → **backoffice**). Restart Claude Desktop, open a NEW Cowork session and ask
-   «¿Qué equipos tengo?». The server should be running (`./bin/backoffice start`); the tools try to start it themselves.
-2. **Fallback: the desktop extension** (only the Back Office tools; also works in Chat). If step 1 is not possible or Cowork
-   still has no Back Office tools: Claude Desktop → **Settings** (Ajustes) → **Extensions** → **Install extension…** → choose
-   `dist/backoffice-<slug>.mcpb` in this folder (generic: `dist/backoffice.mcpb`; `./install.sh` and `./bin/backoffice update`
-   build it; or `node scripts/build-mcpb.mjs`). It is named «Back Office · <Empresa>» and its «Carpeta de Back Office» is
-   already this folder (generic: choose this folder). It reads this folder's ports from `data/.env`. Restart Claude Desktop.
-   Several companies = several extensions side by side, one per folder.
-3. **Check:** Health check 11. If a tool answers «Back Office está apagado…», run `./bin/backoffice start`. If it answers «No
+1. **Already automatic:** the installer adds this company's MCP to Claude Desktop's `claude_desktop_config.json` (macOS and
+   Windows, backup `*.backoffice-backup`): Chat sees the tools after a Claude Desktop restart. Cowork does not use it.
+2. **Extension, one click (do this for the person; it gives Chat and Cowork the Back Office tools).** With their OK, open
+   `dist/backoffice-<slug>.mcpb` (build it first if missing: `node scripts/build-mcpb.mjs`): macOS `open "<path>"`, Windows
+   `Start-Process "<path>"`. Claude Desktop shows its install dialog; the person clicks **Install** (you cannot). It is
+   named «Back Office · <Empresa>» and its «Carpeta de Back Office» is preset to this folder (generic `dist/backoffice.mcpb`:
+   the person picks this folder); it reads the ports from `data/.env`. Restart Claude Desktop. Several companies = several
+   extensions side by side. Manual: Settings (Ajustes) → Extensions → Install extension… → that file.
+3. **Plugin with agents and skills in Cowork (manual, you cannot click).** Give the person the absolute path of
+   `dist/company-plugin` and walk them through Customize (Personalizar) → Plugins → Add marketplace → that folder → install
+   **backoffice-<slug>** (generic: marketplace `SandPalace/backoffice` → **backoffice**) → restart. `.backoffice` is hidden:
+   in the folder picker, macOS Cmd+Shift+G + paste the path (or Cmd+Shift+. shows hidden folders); Windows: paste the path in
+   the address bar. Then a NEW Cowork session: «¿Qué equipos tengo?». The server should be running (`./bin/backoffice start`).
+4. **Check:** Health check 11. If a tool answers «Back Office está apagado…», run `./bin/backoffice start`. If it answers «No
    encuentro tu carpeta de Back Office…», fix the folder in Settings → Extensions → Back Office.
-4. The web is http://localhost:4781 (also inside Cowork's browser: the page only talks to 4781). Agents return direct links
+5. The web is http://localhost:4781 (also inside Cowork's browser: the page only talks to 4781). Agents return direct links
    such as `http://localhost:4781/canvas?ws=<project>&artifact=<id>` that open the project and the card.
 
 ### Other MCP clients (Codex, OpenCode, Cursor...)
