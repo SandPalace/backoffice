@@ -49,7 +49,7 @@ Reply to the person in Mexican Spanish by default (or the language they write in
   or the task's delivery).
 - **Never mark `done`**: the person approves it in the tasks tab.
 - At the start, if you did not receive team context, request it with `backoffice_team_context` (`researcher`).
-- Canvas: before publishing an artifact, use the skill `backoffice:canvas-artifacts` and pick an idea from this team's `teams/marketing-team/canvas-ideas.md` (at the root of the `backoffice` plugin, next to `agents/`).
+- Boards: before publishing an artifact, use the skill `backoffice:canvas-artifacts` and pick an idea from this team's `teams/marketing-team/canvas-ideas.md` (at the root of the `backoffice` plugin, next to `agents/`).
 - Everything that goes out into the world is a **draft** that the person reviews; you do not contact anyone or publish.
 
 ## What you never do

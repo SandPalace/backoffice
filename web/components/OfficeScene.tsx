@@ -33,8 +33,8 @@ const FACE_FALLBACK = [0, 2, 9, 13, 16, 19]
 const STATUS_MAP = { working: 'BUSY', waiting: 'MAINTENANCE', idle: 'IDLE', error: 'ERROR', offline: 'OFFLINE' }
 
 // Pared del fondo (norte): tablero de corcho con una nota adhesiva por tarea, de color según su estado.
-const NOTE_COLOR: Record<TaskStatus, string> = { todo: '#FFE98A', doing: '#BFE3FF', blocked: '#FFC4C4', review: '#FFD0A0', done: '#C9F2C7' }
-const NOTE_INK: Record<TaskStatus, string> = { todo: '#7A5B00', doing: '#1B5E94', blocked: '#9B1C1C', review: '#9A4B00', done: '#1F7A32' }
+const NOTE_COLOR: Record<TaskStatus, string> = { backlog: '#E6E6E6', cancelled: '#D0D0D0', todo: '#FFE98A', doing: '#BFE3FF', blocked: '#FFC4C4', review: '#FFD0A0', done: '#C9F2C7' }
+const NOTE_INK: Record<TaskStatus, string> = { backlog: '#555555', cancelled: '#777777', todo: '#7A5B00', doing: '#1B5E94', blocked: '#9B1C1C', review: '#9A4B00', done: '#1F7A32' }
 
 function Note({ task, n, x, y, tilt, selected, onSelect }: any) {
   const [hover, setHover] = useState(false)
@@ -69,7 +69,7 @@ function Note({ task, n, x, y, tilt, selected, onSelect }: any) {
 }
 
 function PostItWall({ x, width, tasks, selectedId, onSelect }: { x: number; width: number; tasks: Task[]; selectedId: string | null; onSelect: (id: string) => void }) {
-  const list = [...tasks].sort((a, b) => a.created_at - b.created_at)
+  const list = tasks.filter((t) => t.status !== 'cancelled').sort((a, b) => a.created_at - b.created_at) // cancelled work leaves the wall
   const cols = Math.max(2, Math.floor((width - 0.2) / 1.5))
   const rowsN = 3
   const shown = list.slice(0, cols * rowsN)

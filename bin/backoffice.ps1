@@ -38,13 +38,25 @@ $BACKOFFICE_HOME = if ($env:BACKOFFICE_HOME) { $env:BACKOFFICE_HOME }
 $BACKOFFICE_ROOT = if ($env:BACKOFFICE_ROOT) { $env:BACKOFFICE_ROOT }
   elseif ((Test-Path $legacyRoot) -and -not (Test-Path (Join-Path $REPO 'workspaces'))) { $legacyRoot }
   else { Join-Path $REPO 'workspaces' }
-$PORT = if ($env:BACKOFFICE_PORT) { $env:BACKOFFICE_PORT } else { '4780' }
-$WEB_PORT = if ($env:BACKOFFICE_WEB_PORT) { $env:BACKOFFICE_WEB_PORT } else { '4781' }
+# Puertos de ESTE Back Office: los elige el instalador y viven en data\.env (cada empresa en su carpeta tiene los suyos:
+# 4780/4781, 4782/4783, ...). Una variable BACKOFFICE_PORT / BACKOFFICE_WEB_PORT puesta a mano gana.
+function Get-DotEnvVal($key) {
+  $f = Join-Path $BACKOFFICE_HOME '.env'
+  if (-not (Test-Path $f)) { return '' }
+  $line = Get-Content $f -ErrorAction SilentlyContinue | Where-Object { $_ -match "^$key=" } | Select-Object -Last 1
+  if (-not $line) { return '' }
+  return (($line -replace "^$key=", '').Trim().Trim('"').Trim("'"))
+}
+$PORT = if ($env:BACKOFFICE_PORT) { $env:BACKOFFICE_PORT } elseif (Get-DotEnvVal 'BACKOFFICE_PORT') { Get-DotEnvVal 'BACKOFFICE_PORT' } else { '4780' }
+$WEB_PORT = if ($env:BACKOFFICE_WEB_PORT) { $env:BACKOFFICE_WEB_PORT } elseif (Get-DotEnvVal 'BACKOFFICE_WEB_PORT') { Get-DotEnvVal 'BACKOFFICE_WEB_PORT' } else { '4781' }
 $RUN = Join-Path $BACKOFFICE_HOME 'run'
 $LOGS = Join-Path $BACKOFFICE_HOME 'logs'
 $SERVER_JS = Join-Path $REPO 'plugins\backoffice\server\src\server.mjs'
 $NEXT_BIN = Join-Path $REPO 'web\node_modules\next\dist\bin\next'
 $env:BACKOFFICE_PORT = $PORT
+$env:BACKOFFICE_WEB_PORT = $WEB_PORT
+$coSlug = Get-DotEnvVal 'BACKOFFICE_COMPANY_SLUG'
+if ($coSlug) { $env:BACKOFFICE_COMPANY_SLUG = $coSlug }   # el servidor sabe que su plugin es backoffice-<slug>
 $env:BACKOFFICE_HOME = $BACKOFFICE_HOME
 $env:BACKOFFICE_ROOT = $BACKOFFICE_ROOT
 
@@ -77,7 +89,7 @@ function Invoke-Start {
   if (-not (Get-Command node -ErrorAction SilentlyContinue)) { Say 'No encuentro Node.js. Abre una terminal nueva o reinstala Node.'; exit 1 }
   if (Test-Healthy) { Say "Servidor ya estaba corriendo (puerto $PORT)." }
   else {
-    if ((Get-PortPids $PORT).Count -gt 0) { Say "El puerto $PORT esta ocupado por otro programa. Cierralo o usa: `$env:BACKOFFICE_PORT='otro-puerto'; bin\backoffice.cmd start"; exit 1 }
+    if ((Get-PortPids $PORT).Count -gt 0) { Say "El puerto $PORT esta ocupado por otro programa (otro Back Office?). Cierralo o cambia BACKOFFICE_PORT y BACKOFFICE_WEB_PORT en data\.env y corre bin\backoffice.cmd update"; exit 1 }
     Start-Hidden 'server' (Quote $SERVER_JS) $REPO
     for ($i = 0; $i -lt 40; $i++) { if (Test-Healthy) { break }; Start-Sleep -Milliseconds 250 }
     if (-not (Test-Healthy)) { Say "El servidor no arranco. Revisa $LOGS\server.err.log"; exit 1 }
@@ -85,7 +97,7 @@ function Invoke-Start {
   }
   if (Test-WebUp) { Say "Oficina web ya estaba corriendo (puerto $WEB_PORT)." }
   else {
-    if ((Get-PortPids $WEB_PORT).Count -gt 0) { Say "El puerto $WEB_PORT esta ocupado por otro programa. Usa: `$env:BACKOFFICE_WEB_PORT='otro-puerto'; bin\backoffice.cmd start"; exit 1 }
+    if ((Get-PortPids $WEB_PORT).Count -gt 0) { Say "El puerto $WEB_PORT esta ocupado por otro programa (otro Back Office?). Cambia BACKOFFICE_WEB_PORT en data\.env y corre bin\backoffice.cmd update"; exit 1 }
     $env:NEXT_TELEMETRY_DISABLED = '1'
     Start-Hidden 'web' ((Quote $NEXT_BIN) + " start -p $WEB_PORT -H 127.0.0.1") (Join-Path $REPO 'web')
     for ($i = 0; $i -lt 80; $i++) { if (Test-WebUp) { break }; Start-Sleep -Milliseconds 250 }
@@ -120,14 +132,16 @@ function Invoke-Stop {
 }
 
 function Invoke-Status {
-  if (Test-Healthy) { Say "Servidor:      corriendo (puerto $PORT)" } else { Say 'Servidor:      detenido' }
-  if (Test-WebUp) { Say "Oficina web:   corriendo -> http://localhost:$WEB_PORT" } else { Say 'Oficina web:   detenida' }
+  if (Test-Healthy) { Say "Servidor:      corriendo (puerto $PORT)" } else { Say "Servidor:      detenido (puerto $PORT)" }
+  if (Test-WebUp) { Say "Oficina web:   corriendo -> http://localhost:$WEB_PORT" } else { Say "Oficina web:   detenida (puerto $WEB_PORT)" }
   $wp = Get-WaPort
   $wh = $null
   try { $wh = (Invoke-WebRequest -Uri "http://127.0.0.1:$wp/health" -UseBasicParsing -TimeoutSec 2).Content } catch { }
   if (-not $wh) { Say 'WhatsApp:      detenido (opcional: bin\backoffice.cmd whatsapp)' }
   elseif ($wh -match '"connected"\s*:\s*true') { Say "WhatsApp:      conectado (puerto $wp)" }
   else { Say "WhatsApp:      corriendo, esperando que escanees el QR (puerto $wp)" }
+  $co = Get-DotEnvVal 'BACKOFFICE_COMPANY'
+  if ($co) { Say ("Empresa:       $co (plugin backoffice-" + (Get-DotEnvVal 'BACKOFFICE_COMPANY_SLUG') + ')') }
   Say "Repo: $REPO"
 }
 
@@ -262,10 +276,11 @@ function Invoke-Update {
   if (-not $ok) { Say 'Fallo la compilacion.'; exit 1 }
   # Un solo plugin `backoffice`: quita los 7 viejos si siguen, instala/actualiza backoffice@backoffice y corrige el permiso
   # de ~/.claude/settings.json y la ruta del MCP en Claude Desktop. Idempotente.
-  Say '4/4 Actualizando el plugin backoffice en Claude (y migrando lo que quede con el nombre AgentOS)...'
+  # Con empresa (BACKOFFICE_COMPANY en data\.env) tambien regenera e instala/actualiza su plugin backoffice-<empresa>.
+  Say '4/4 Actualizando el plugin de Back Office en Claude (y migrando lo que quede con el nombre AgentOS)...'
   & node (Join-Path $REPO 'scripts\migrate-plugins.mjs')
   if ($LASTEXITCODE -ne 0) { Say 'Aviso: la migracion de plugins no termino. Vuelve a correr .\bin\backoffice.cmd update o mira "Actualizar" en CLAUDE.md.' }
-  & node (Join-Path $REPO 'scripts\build-mcpb.mjs') *> $null   # dist\backoffice.mcpb: extension de Claude Desktop (respaldo)
+  & node (Join-Path $REPO 'scripts\build-mcpb.mjs') *> $null   # dist\backoffice[-<empresa>].mcpb: extension de Claude Desktop (respaldo)
   Say 'Listo. Reinicia tus sesiones de Claude (y Claude Desktop) para cargar los cambios.'
   if ($wasWeb) { Invoke-Start }
 }

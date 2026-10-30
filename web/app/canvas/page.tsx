@@ -9,7 +9,7 @@ import type { ArtifactScope, ArtifactStatus } from '@/lib/types'
 
 // Sin «Todo»: el Canvas siempre se ve por alcance (decisión del dueño, 22 oct 2026); abre en Proyecto.
 const SCOPES: { id: ArtifactScope; label: string }[] = [
-  { id: 'workspace', label: 'Proyecto' },
+  { id: 'workspace', label: 'Empresa' },
   { id: 'team', label: 'Equipo' },
   { id: 'agent', label: 'Agente' },
 ]
@@ -43,7 +43,7 @@ export default function CanvasPage() {
       <Header conn={conn} />
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-xl font-bold tracking-tight">Canvas · {workspace?.name ?? workspaceId}</h1>
+          <h1 className="text-xl font-bold tracking-tight">Boards · {workspace?.name ?? workspaceId}</h1>
           <p className="mt-1 text-xs text-muted">Lo que tus agentes te piden revisar. Ábrelo, comenta, apruébalo o pide cambios: el agente se entera.</p>
         </div>
         <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Filtros del Canvas">

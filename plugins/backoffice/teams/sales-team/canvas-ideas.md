@@ -1,9 +1,9 @@
-# Canvas ideas · sales-team
+# Boards ideas · sales-team
 
-Artifacts this team can publish to the Canvas with `backoffice_artifact_publish`. Titles are Spanish patterns
+Artifacts this team can publish to the Boards with `backoffice_artifact_publish`. Titles are Spanish patterns
 (`<prospecto>`, `<negocio>`, `<fecha>` are placeholders filled with real values). Templates come from the core skill
 `backoffice:canvas-artifacts`. Scope: `team` for the Team board, `agent` for each agent's own board, `workspace`
-only when the person asked for a project-level view. Leads still live in the Leads Kanban; the Canvas is for what
+only when the person asked for a project-level view. Leads still live in the Leads Kanban; the Boards is for what
 the person must read and validate.
 
 ## Team board (scope `team`)
@@ -57,5 +57,5 @@ the person must read and validate.
   `[NO DATA: ...]`. Never sample prospects or invented prices.
 - One card per deliverable. A change is a new version of the same artifact (`artifact_id`), never a new card.
 - Request review with one concrete question in the note (e.g. «¿Envío la propuesta con el paquete Básico?»).
-- Every message on the Canvas is a BORRADOR; approving it does not send it. Leads and tasks keep their own flow.
+- Every message on the Boards is a BORRADOR; approving it does not send it. Leads and tasks keep their own flow.
 - Read `backoffice:canvas-artifacts` for the procedure, templates and scopes before publishing.

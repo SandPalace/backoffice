@@ -19,6 +19,7 @@ import { desktopCodeSessions } from './desktop-sessions.mjs'
 import { createAgentDefs } from './agent-defs.mjs'
 import { createIssues } from './issues.mjs'
 import { createCanvas } from './canvas.mjs'
+import { createAgile } from './agile.mjs'
 import { createWhatsApp } from './whatsapp.mjs'
 import { createAuth, loadCredentials, looseFiles, parseCookie, cookieHeader, clearCookieHeader, bearerOk, ensureMcpKey } from './auth.mjs'
 import { handle as mcpHandle } from './mcp.mjs'
@@ -44,6 +45,7 @@ export function createApp({ db = openDb(), port = DEFAULT_PORT, extraRoots = [],
   const lim = { ...DEFAULT_LIMITS, ...limits }
   const files = createFiles({ store, blobs, limits: lim })
   const canvas = createCanvas({ db, store, blobs, files, limits: lim })
+  const agile = createAgile({ db, store })
   let allowedPath = () => true
   const uploader = createUploader({ store, blobs, allowPath: (p) => allowedPath(p) })
   const sse = new Map() // res -> workspace id
@@ -526,7 +528,7 @@ export function createApp({ db = openDb(), port = DEFAULT_PORT, extraRoots = [],
     if (m === 'DELETE' && (tm = path.match(/^\/api\/profile\/insights\/(\d+)$/))) return store.deleteInsight(tm[1]), send(res, 200, { ok: true })
     if (m === 'GET' && path === '/api/system') return send(res, 200, store.listSystemAgents(ws))
     if (m === 'PATCH' && (tm = path.match(/^\/api\/system\/([\w-]+)$/))) return send(res, 200, store.updateSystemAgent(tm[1], await readJson(req), ws))
-    if (m === 'GET' && path === '/api/overview') return send(res, 200, store.overview(ws))
+    if (m === 'GET' && path === '/api/overview') return send(res, 200, { ...store.overview(ws), agile: agile.summary(ws) })
     if (m === 'GET' && path === '/api/roster') return send(res, 200, store.getRoster({ plugin: url.searchParams.get('plugin'), agent: url.searchParams.get('agent') }, ws))
     if (m === 'GET' && path === '/api/teams') return send(res, 200, store.listTeams(ws))
     if (m === 'POST' && path === '/api/teams') return send(res, 201, store.createTeam(await readJson(req), ws))
@@ -546,7 +548,7 @@ export function createApp({ db = openDb(), port = DEFAULT_PORT, extraRoots = [],
     if (m === 'GET' && path === '/api/stream') {
       const w = store.needWorkspace(ws)
       res.writeHead(200, { 'content-type': 'text/event-stream', 'cache-control': 'no-store, no-transform', connection: 'keep-alive', 'x-accel-buffering': 'no' }) // no-transform: a proxy (Next on 4781) must not gzip-buffer the stream
-      res.write(`event: snapshot\ndata: ${JSON.stringify({ workspace: { id: w.id, name: w.name }, workspaces: store.listWorkspaces(), sessions: store.listSessions(ws), tasks: store.listTasks(ws), leads: store.listLeads(ws), teams: store.listTeams(ws), system: store.listSystemAgents(ws) })}\n\n`)
+      res.write(`event: snapshot\ndata: ${JSON.stringify({ workspace: { id: w.id, name: w.name }, workspaces: store.listWorkspaces(), sessions: store.listSessions(ws), tasks: store.listTasks(ws), leads: store.listLeads(ws), teams: store.listTeams(ws), system: store.listSystemAgents(ws), ...agile.snapshot(ws) })}\n\n`)
       sse.set(res, ws)
       const ping = setInterval(() => res.write(': ping\n\n'), 20000)
       req.on('close', () => {
@@ -556,7 +558,30 @@ export function createApp({ db = openDb(), port = DEFAULT_PORT, extraRoots = [],
       return
     }
 
-    if (m === 'GET' && path === '/api/tasks') return send(res, 200, store.listTasks(ws))
+    if (m === 'GET' && path === '/api/tasks') {
+      let list = store.listTasks(ws)
+      for (const k of ['status', 'sprint_id', 'story_id']) {
+        const v = url.searchParams.get(k)
+        if (v) list = list.filter((x) => (v === 'none' ? x[k] == null : x[k] === v))
+      }
+      return send(res, 200, list)
+    }
+    // ── Agile: epics, stories, sprints. Agents: /api/<kind>; the person (browser only): /api/human/<kind> ──
+    let ag
+    if ((ag = path.match(/^\/api\/(human\/)?(epics|stories|sprints)(?:\/([\w-]+))?(\/complete)?$/))) {
+      const [, human, kind, id, complete] = ag
+      if (human && m !== 'GET' && !fromBrowser) throw new AppError('human_only', 'Sólo la persona hace esto, desde la web. Los agentes usan las herramientas backoffice_epic_*/_story_*/_sprint_*.', 403)
+      if (complete) {
+        if (!human || kind !== 'sprints' || !id || m !== 'POST') return send(res, 404, { error: 'not_found' })
+        return send(res, 200, agile.complete(id, strictWs, await readJson(req)))
+      }
+      if (m === 'GET' && !id) return send(res, 200, agile.list(kind, ws, { status: url.searchParams.get('status'), epic_id: url.searchParams.get('epic_id'), sprint_id: url.searchParams.get('sprint_id') }))
+      if (m === 'GET') return send(res, 200, agile.get(kind, id, strictWs))
+      if (m === 'POST' && !id) return send(res, 201, agile.create(kind, await readJson(req), ws, !!human))
+      if (m === 'PATCH' && id) return send(res, 200, agile.update(kind, id, await readJson(req), strictWs, !!human))
+      if (m === 'DELETE' && id && human) return send(res, 200, agile.remove(kind, id, strictWs))
+      return send(res, 404, { error: 'not_found' })
+    }
     if (m === 'POST' && path === '/api/tasks') return send(res, 201, store.createTask(await readJson(req), ws))
     let t
     if (m === 'GET' && path === '/api/leads') return send(res, 200, store.listLeads(ws, { stage: url.searchParams.get('stage') || undefined, query: url.searchParams.get('query') || undefined }))
@@ -654,7 +679,7 @@ export function createApp({ db = openDb(), port = DEFAULT_PORT, extraRoots = [],
       return send(res, 200, out)
     }
     if ((t = path.match(/^\/api\/human\/tasks\/([\w-]+)$/))) {
-      if (m === 'PATCH') return send(res, 200, store.setTaskStatus(t[1], (await readJson(req)).status, strictWs))
+      if (m === 'PATCH') return send(res, 200, store.humanUpdateTask(t[1], await readJson(req), strictWs))
       if (m === 'DELETE') return send(res, 200, store.deleteTask(t[1], strictWs))
     }
 

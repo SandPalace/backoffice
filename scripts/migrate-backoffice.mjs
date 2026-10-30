@@ -283,7 +283,28 @@ export async function migrate(args = [], env = process.env, repo = REPO) {
     await mp.migrateJson(env, { settings: !has("--no-settings"), desktop: !has("--no-desktop"), repo });
   }
   const report = {};
-  const ok = has("--no-claude") ? true : mp.migrateClaudePlugins(env, repo, report);
+  // A company (data/.env BACKOFFICE_COMPANY) gets its own plugin backoffice-<slug>; the generic one is left to single-company installs.
+  let company = null;
+  try {
+    company = (await import("./company.mjs")).companyOf(repo, env);
+  } catch {
+    /* no company.mjs (older copy) or unreadable data/.env: generic */
+  }
+  let ok = has("--no-claude") ? true : mp.migrateClaudePlugins(env, repo, report, { generic: !company });
+  if (company) {
+    const cp = await import("./build-company-plugin.mjs");
+    try {
+      const built = cp.buildCompanyPlugin(company, { repo });
+      say(`Plugin de ${company.name}: ${built.plugin} ${built.version} (${built.out}).`);
+      if (!has("--no-claude")) {
+        if (!cp.registerCompanyPlugin(built, env)) ok = false;
+        else await cp.offerRemoveGeneric(env, repo);
+      }
+    } catch (e) {
+      say(`!! No pude generar el plugin de ${company.name}: ${e.message}`);
+      ok = false;
+    }
+  }
   if (!has("--plugins-only")) {
     const defs = await migrateAgentDefs(env, repo, dirs);
     if (defs.length) say(`Agentes editados antes del cambio de nombre: actualicé ${defs.length} (respaldo .backoffice-backup): ${defs.join(", ")}`);

@@ -393,7 +393,7 @@ export default function Page() {
                       href={`/canvas?agent=${encodeURIComponent(seat.member.id)}`}
                       className="rounded-full bg-bg/15 px-3 py-1 font-semibold hover:bg-bg/25"
                     >
-                      Ver su canvas
+                      Ver su board
                     </Link>
                   )}
                   <button
@@ -518,7 +518,7 @@ export default function Page() {
                       href={`/canvas?agent=${encodeURIComponent(seat.member.id)}`}
                       className="rounded-full border border-line px-3 py-1.5 text-center font-semibold hover:bg-bg"
                     >
-                      Ver su canvas
+                      Ver su board
                     </Link>
                   )}
                   <button

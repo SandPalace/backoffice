@@ -325,6 +325,56 @@ export const MIGRATIONS = [
   },
   // · AgentOS → Back Office: the default project keeps the product's name unless the person renamed it.
   `UPDATE workspaces SET name = 'Back Office' WHERE id = 'default' AND name = 'AgentOS';`,
+  // · Agile: epics → stories → tasks, and sprints. Task statuses gain backlog and cancelled (TEXT, no CHECK: nothing to migrate).
+  //   Only the person closes things (done / cancelled / completed); agents propose cancelling a task with `cancel_proposal`.
+  (db) => {
+    db.exec(`CREATE TABLE IF NOT EXISTS epics (
+       id TEXT PRIMARY KEY,
+       workspace_id TEXT NOT NULL DEFAULT 'default',
+       title TEXT NOT NULL,
+       description TEXT,
+       status TEXT NOT NULL DEFAULT 'planning', -- planning | active | done | cancelled
+       owner_agent TEXT,
+       created_at INTEGER NOT NULL,
+       updated_at INTEGER NOT NULL
+     );
+     CREATE INDEX IF NOT EXISTS epics_ws ON epics(workspace_id, status);
+     CREATE TABLE IF NOT EXISTS sprints (
+       id TEXT PRIMARY KEY,
+       workspace_id TEXT NOT NULL DEFAULT 'default',
+       name TEXT NOT NULL,
+       goal TEXT,
+       start_date TEXT,                         -- YYYY-MM-DD
+       end_date TEXT,
+       status TEXT NOT NULL DEFAULT 'planning', -- planning | active | review | completed
+       report TEXT,
+       completed_at INTEGER,
+       created_at INTEGER NOT NULL,
+       updated_at INTEGER NOT NULL
+     );
+     CREATE INDEX IF NOT EXISTS sprints_ws ON sprints(workspace_id, status);
+     CREATE UNIQUE INDEX IF NOT EXISTS sprints_one_active ON sprints(workspace_id) WHERE status = 'active';
+     CREATE TABLE IF NOT EXISTS stories (
+       id TEXT PRIMARY KEY,
+       workspace_id TEXT NOT NULL DEFAULT 'default',
+       epic_id TEXT,
+       sprint_id TEXT,
+       title TEXT NOT NULL,
+       description TEXT,                        -- user story + acceptance criteria
+       status TEXT NOT NULL DEFAULT 'backlog',  -- backlog | todo | doing | review | done | cancelled
+       points INTEGER,
+       owner_agent TEXT,
+       created_at INTEGER NOT NULL,
+       updated_at INTEGER NOT NULL
+     );
+     CREATE INDEX IF NOT EXISTS stories_ws ON stories(workspace_id, status);
+     CREATE INDEX IF NOT EXISTS stories_epic ON stories(epic_id);
+     CREATE INDEX IF NOT EXISTS stories_sprint ON stories(sprint_id);`)
+    addCol(db, 'tasks', 'story_id', 'TEXT')
+    addCol(db, 'tasks', 'sprint_id', 'TEXT')
+    addCol(db, 'tasks', 'cancel_proposal', 'TEXT')
+    db.exec('CREATE INDEX IF NOT EXISTS tasks_story ON tasks(story_id); CREATE INDEX IF NOT EXISTS tasks_sprint ON tasks(sprint_id);')
+  },
 ]
 
 export function openDb(path = defaultDbPath()) {

@@ -11,16 +11,55 @@ const WS_ALL = { type: 'string', description: 'Project (workspace) id, or "all" 
 
 const LEAD_SOURCES = ['whatsapp', 'instagram', 'facebook', 'meta_form', 'email', 'web', 'referral', 'other']
 
+// Agile planning: epics → stories → tasks, and sprints. Agents (normally the CEO or a lead) plan and move work forward;
+// only the person closes it (done / cancelled / completed sprint) in the web. No tool approves or completes anything.
+function agileTools() {
+  const sch = (props, required = []) => ({ type: 'object', properties: { ...props, workspace: WS }, required })
+  const epic = { title: { type: 'string', description: '1-200 chars' }, description: { type: 'string', description: 'Outcome and scope' }, owner_agent: { type: 'string', description: 'Agent id that owns it (e.g. ceo)' }, status: { type: 'string', enum: ['planning', 'active'] } }
+  const story = {
+    title: { type: 'string', description: '1-200 chars' },
+    description: { type: 'string', description: 'User story ("As <who> I want <what> so that <why>") + acceptance criteria' },
+    epic_id: { type: ['string', 'null'], description: 'Epic id (E-...)' },
+    sprint_id: { type: ['string', 'null'], description: 'Sprint id (SP-...)' },
+    points: { type: ['integer', 'null'], minimum: 0, maximum: 100, description: 'Estimate (story points)' },
+    owner_agent: { type: 'string' },
+    status: { type: 'string', enum: ['backlog', 'todo', 'doing', 'review'] },
+  }
+  const sprint = {
+    name: { type: 'string', description: '1-120 chars, e.g. "Sprint 1"' },
+    goal: { type: 'string', description: 'One sentence: what is true at the end of the sprint' },
+    start_date: { type: 'string', description: 'YYYY-MM-DD' },
+    end_date: { type: 'string', description: 'YYYY-MM-DD' },
+    status: { type: 'string', enum: ['planning', 'active', 'review'] },
+    report: { type: 'string', description: 'Sprint report: done, not done, why, next. Required to move to review.' },
+  }
+  const id = (p) => ({ id: { type: 'string', description: `${p} id` } })
+  return [
+    { name: 'backoffice_epic_create', description: 'Creates an epic: a big outcome that groups stories (e.g. "Lanzar tienda en línea"). Agents use planning or active; only the person marks an epic done or cancelled.', inputSchema: sch(epic, ['title']) },
+    { name: 'backoffice_epic_list', description: 'Lists the epics of the project with story counts, points and task progress. Filter by status.', inputSchema: sch({ status: { type: 'string', enum: ['planning', 'active', 'done', 'cancelled'] } }) },
+    { name: 'backoffice_epic_update', description: 'Updates an epic (partial). Agents may set planning or active; done/cancelled are the person\'s, and a closed epic is only reopened by the person.', inputSchema: sch({ ...id('Epic (E-...)'), ...epic }, ['id']) },
+    { name: 'backoffice_story_create', description: 'Creates a user story with acceptance criteria, optionally inside an epic and a sprint, with points. Then create its tasks with backoffice_task_create story_id. Agents use backlog/todo/doing/review; only the person marks a story done or cancelled.', inputSchema: sch(story, ['title']) },
+    { name: 'backoffice_story_list', description: 'Lists stories with their task progress. Filters: epic_id, sprint_id ("none" = without), status.', inputSchema: sch({ epic_id: { type: 'string' }, sprint_id: { type: 'string' }, status: { type: 'string', enum: ['backlog', 'todo', 'doing', 'review', 'done', 'cancelled'] } }) },
+    { name: 'backoffice_story_update', description: 'Updates a story (partial): text, points, epic, sprint, status (backlog/todo/doing/review). Move it to review when its tasks are delivered; the person approves (done) or cancels it.', inputSchema: sch({ ...id('Story (S-...)'), ...story }, ['id']) },
+    { name: 'backoffice_sprint_create', description: 'Creates a sprint (time box, usually 1-2 weeks) with a goal and dates. At most ONE active sprint per project. Agents use planning/active/review; only the person completes a sprint (in the web), which rolls unfinished work over.', inputSchema: sch(sprint, ['name']) },
+    { name: 'backoffice_sprint_list', description: 'Lists sprints (active first) with progress: tasks by status, percent done, story points.', inputSchema: sch({ status: { type: 'string', enum: ['planning', 'active', 'review', 'completed'] } }) },
+    { name: 'backoffice_sprint_update', description: 'Updates a sprint (partial). Start it with status active (only one active per project). At the end move it to review WITH a report; the person reads it and completes the sprint in the web. You can never complete it.', inputSchema: sch({ ...id('Sprint (SP-...)'), ...sprint }, ['id']) },
+  ]
+}
+
 const TOOLS = [
   {
     name: 'backoffice_task_create',
-    description: 'Crea una tarea en el tablero de Back Office. Úsala al empezar un trabajo que tomará más de un paso.',
+    description: 'Crea una tarea en el tablero de Back Office. Úsala al empezar un trabajo que tomará más de un paso. Status todo (default) o backlog (planeada, aún no lista). Puede ir dentro de una historia (story_id; hereda su sprint) y/o un sprint (sprint_id).',
     inputSchema: {
       type: 'object',
       properties: {
         title: { type: 'string', description: 'Qué se va a hacer, en una frase' },
         description: { type: 'string' },
         agent: { type: 'string', description: 'Quién la hace (e.g. analyst, cmo)' },
+        status: { type: 'string', enum: ['todo', 'backlog'] },
+        story_id: { type: 'string', description: 'Story id (S-...) this task belongs to' },
+        sprint_id: { type: 'string', description: 'Sprint id (SP-...); default = the story\'s sprint' },
         workspace: WS,
       },
       required: ['title'],
@@ -29,12 +68,15 @@ const TOOLS = [
   {
     name: 'backoffice_task_update',
     description:
-      'Cambia el estado de una tarea: todo, doing, blocked o review. Para pasar a review debes indicar output_dir (carpeta con los entregables, ruta absoluta) o haber registrado un entregable con backoffice_task_deliver. Nunca marques done: la persona lo aprueba en la web.',
+      'Cambia el estado de una tarea: backlog, todo, doing, blocked o review, y/o su historia (story_id) o sprint (sprint_id; null = quitarla). Para pasar a review debes indicar output_dir (carpeta con los entregables, ruta absoluta) o haber registrado un entregable con backoffice_task_deliver. Nunca marques done ni cancelled: la persona aprueba y cancela en la web. Si la tarea ya no tiene sentido, propón cancelarla con propose_cancel (el motivo): queda en review y la persona decide.',
     inputSchema: {
       type: 'object',
       properties: {
         id: { type: 'string' },
-        status: { type: 'string', enum: ['todo', 'doing', 'blocked', 'review'] },
+        status: { type: 'string', enum: ['backlog', 'todo', 'doing', 'blocked', 'review'] },
+        story_id: { type: ['string', 'null'], description: 'Story id (S-...), or null to unlink' },
+        sprint_id: { type: ['string', 'null'], description: 'Sprint id (SP-...), or null to move it back to the backlog pool' },
+        propose_cancel: { type: 'string', description: 'Why this task should be cancelled. Moves it to review; only the person cancels.' },
         output_dir: { type: 'string', description: 'Ruta absoluta de la carpeta donde quedó el resultado' },
         workspace: WS,
       },
@@ -75,9 +117,10 @@ const TOOLS = [
   },
   {
     name: 'backoffice_task_list',
-    description: 'Lista las tareas del tablero, con sus entregables.',
-    inputSchema: { type: 'object', properties: { status: { type: 'string' }, workspace: WS } },
+    description: 'Lista las tareas del tablero, con sus entregables. Filtros: status, sprint_id, story_id ("none" = sin sprint/historia).',
+    inputSchema: { type: 'object', properties: { status: { type: 'string' }, sprint_id: { type: 'string' }, story_id: { type: 'string' }, workspace: WS } },
   },
+  ...agileTools(),
   {
     name: 'backoffice_lead_create',
     description: 'Creates a lead (prospect) in the Leads Kanban of the project. Agents may use any stage except "won" (only the person marks a lead as won). Stage "lost" requires lost_reason or notes.',
@@ -263,7 +306,7 @@ const TOOLS = [
   {
     name: 'backoffice_artifact_publish',
     description:
-      'Publishes an artifact on the Back Office Canvas so the person can review it (approve or request changes) in the web: anything they must look at and validate, such as a post draft, a quote, a report or a design. The result has `link` (opens the project and this card in the web): give that link to the person. Content: `path` of a workspace file saved with backoffice_file_write (it is copied, so later edits do not change what was reviewed) OR inline {name, content|content_base64, content_type?}. Supported: html, markdown, image, pdf, csv, text. Pass `artifact_id` to add a new version (nothing is overwritten; the old versions stay). Status becomes in_review (request_review=false keeps a draft); with artifact_id and no content it moves a draft to in_review. You can never approve: only the person does. Approving an artifact does not finish its task: still deliver the task with backoffice_task_deliver. `home: true` = the project home shown in the Inicio tab (one per project, workspace scope, no review: it stays a living page the person can comment on).',
+      'Publishes an artifact on Back Office Boards (web tab «Boards») so the person can review it (approve or request changes) in the web: anything they must look at and validate, such as a post draft, a quote, a report or a design. The result has `link` (opens the project and this card in the web): give that link to the person. Content: `path` of a workspace file saved with backoffice_file_write (it is copied, so later edits do not change what was reviewed) OR inline {name, content|content_base64, content_type?}. Supported: html, markdown, image, pdf, csv, text. Pass `artifact_id` to add a new version (nothing is overwritten; the old versions stay). Status becomes in_review (request_review=false keeps a draft); with artifact_id and no content it moves a draft to in_review. You can never approve: only the person does. Approving an artifact does not finish its task: still deliver the task with backoffice_task_deliver. `home: true` = the project home shown in the Inicio tab (one per project, workspace scope, no review: it stays a living page the person can comment on).',
     inputSchema: {
       type: 'object',
       properties: {
@@ -289,7 +332,7 @@ const TOOLS = [
   },
   {
     name: 'backoffice_artifact_list',
-    description: 'Lists Canvas artifacts of the project (latest version, status, comment counts). Filter by scope_type/scope_id and status (draft, in_review, approved, changes_requested). With needs_action=true and `agent` = your id, returns only YOUR artifacts with changes requested or unread comments from the person: check it when you start working. is_home = 1 marks the project home (Inicio tab).',
+    description: 'Lists Boards artifacts of the project (latest version, status, comment counts). Filter by scope_type/scope_id and status (draft, in_review, approved, changes_requested). With needs_action=true and `agent` = your id, returns only YOUR artifacts with changes requested or unread comments from the person: check it when you start working. is_home = 1 marks the project home (Inicio tab).',
     inputSchema: {
       type: 'object',
       properties: {
@@ -304,12 +347,12 @@ const TOOLS = [
   },
   {
     name: 'backoffice_artifact_get',
-    description: 'Reads one Canvas artifact (is_home = 1 for the project home): its versions (with content_url) and the comment thread, including the person\'s decisions. Pass `agent` = your id: if it is your artifact, the person\'s comments are marked as read.',
+    description: 'Reads one Boards artifact (is_home = 1 for the project home): its versions (with content_url) and the comment thread, including the person\'s decisions. Pass `agent` = your id: if it is your artifact, the person\'s comments are marked as read.',
     inputSchema: { type: 'object', properties: { id: { type: 'string', description: 'Artifact id (A-...)' }, agent: { type: 'string', description: 'YOUR own agent id' }, workspace: WS }, required: ['id'] },
   },
   {
     name: 'backoffice_artifact_comment',
-    description: 'Adds your comment to a Canvas artifact thread (e.g. answer the person\'s question or explain what you changed). It does not change the status; to send a fix publish a new version with backoffice_artifact_publish and artifact_id.',
+    description: 'Adds your comment to a Boards artifact thread (e.g. answer the person\'s question or explain what you changed). It does not change the status; to send a fix publish a new version with backoffice_artifact_publish and artifact_id.',
     inputSchema: { type: 'object', properties: { id: { type: 'string', description: 'Artifact id (A-...)' }, body: { type: 'string', description: 'Comment (max 4000)' }, agent: { type: 'string', description: 'YOUR own agent id' }, workspace: WS }, required: ['id', 'body', 'agent'] },
   },
   {
@@ -433,8 +476,23 @@ async function callTool(name, a = {}, ctx = STDIO) {
     case 'backoffice_file_move':
       return api('POST', '/api/files/move', { from: a.from, to: a.to }, ws)
     case 'backoffice_task_list': {
-      const all = await api('GET', '/api/tasks', undefined, ws)
-      return a.status ? all.filter((t) => t.status === a.status) : all
+      const q = new URLSearchParams()
+      for (const k of ['status', 'sprint_id', 'story_id']) if (a[k]) q.set(k, a[k])
+      return api('GET', `/api/tasks${q.size ? `?${q}` : ''}`, undefined, ws)
+    }
+    case 'backoffice_epic_create': case 'backoffice_story_create': case 'backoffice_sprint_create':
+    case 'backoffice_epic_list': case 'backoffice_story_list': case 'backoffice_sprint_list':
+    case 'backoffice_epic_update': case 'backoffice_story_update': case 'backoffice_sprint_update': {
+      const [, kind, op] = name.match(/^backoffice_(epic|story|sprint)_(create|list|update)$/)
+      const base = `/api/${kind === 'story' ? 'stories' : kind + 's'}`
+      if (op === 'create') return api('POST', base, { ...a, agent: a.owner_agent ? undefined : me || undefined }, ws)
+      if (op === 'list') {
+        const q = new URLSearchParams()
+        for (const k of ['status', 'epic_id', 'sprint_id']) if (a[k]) q.set(k, a[k])
+        return api('GET', `${base}${q.size ? `?${q}` : ''}`, undefined, ws)
+      }
+      const { id, ...patch } = a
+      return api('PATCH', `${base}/${encodeURIComponent(id ?? '')}`, patch, ws)
     }
     case 'backoffice_issue_report':
       return api('POST', '/api/issues', { ...a, agent: a.agent || me }, ws)

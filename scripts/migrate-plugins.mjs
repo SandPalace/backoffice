@@ -285,7 +285,7 @@ export function migrateDesktop(file, repo = REPO) {
 }
 
 const claudeBin = (env = process.env) => envOf(env, "CLAUDE_BIN") || "claude";
-function claude(args, env = process.env) {
+export function claude(args, env = process.env) {
   const opts = { encoding: "utf8", env, stdio: ["ignore", "pipe", "pipe"] };
   let r = spawnSync(claudeBin(env), args, opts);
   // Windows: an npm install of Claude Code is `claude.cmd`, which only runs through the shell (quote every argument).
@@ -302,7 +302,7 @@ function claude(args, env = process.env) {
   };
 }
 
-/** Installed plugins as [{ id, scope }] (id = name@marketplace), from `claude plugin list --json`. null = could not ask. */
+/** Installed plugins as [{ id, scope, version }] (id = name@marketplace), from `claude plugin list --json`. null = could not ask. */
 export function installedPlugins(env = process.env) {
   const r = claude(["plugin", "list", "--json"], env);
   if (!r.ok) return null;
@@ -319,6 +319,7 @@ export function installedPlugins(env = process.env) {
       .map((p) => ({
         id: String(p.id ?? p.name ?? p.plugin ?? ""),
         scope: p.scope ?? null,
+        version: p.version ?? null,
       }))
       .filter((p) => p.id);
   } catch {
@@ -445,8 +446,13 @@ function ownOldMarketplace(reg, repo) {
   );
 }
 
-/** Step 3. Returns true when `backoffice@backoffice` ends up installed. `report.removedOld` = an old plugin/marketplace was removed. */
-export function migrateClaudePlugins(env = process.env, repo = REPO, report = {}) {
+/**
+ * Step 3. Returns true when `backoffice@backoffice` ends up installed. `report.removedOld` = an old plugin/marketplace was removed.
+ * `generic: false` = this install has a company plugin (scripts/build-company-plugin.mjs): old plugins are still removed,
+ * but the generic `backoffice` marketplace/plugin is never added or re-pointed here (with several companies on one
+ * machine every folder would steal it from the others); an already installed generic plugin of THIS folder is refreshed.
+ */
+export function migrateClaudePlugins(env = process.env, repo = REPO, report = {}, { generic = true } = {}) {
   if (envOf(env, "SKIP_CLAUDE") === "1") {
     say("Plugins de Claude: omitido (BACKOFFICE_SKIP_CLAUDE=1).");
     return true;
@@ -489,6 +495,17 @@ export function migrateClaudePlugins(env = process.env, repo = REPO, report = {}
         ? `Quité el marketplace viejo ${OLD_MARKETPLACE} (ahora se llama ${MARKETPLACE}).`
         : `!! No pude quitar el marketplace viejo ${OLD_MARKETPLACE}: ${first(rm)}. A mano: claude plugin marketplace remove ${OLD_MARKETPLACE}`,
     );
+  }
+  if (!generic) {
+    report.removedOld = removedOld;
+    const reg = registeredMarketplace(env);
+    const now = removedOld ? (installedPlugins(env) ?? before) : before;
+    if (reg?.path && sameDir(reg.path, repo) && now.some((x) => x.id === target)) {
+      claude(["plugin", "marketplace", "update", MARKETPLACE], env);
+      const u = claude(["plugin", "update", target], env);
+      say(u.ok ? `Plugin genérico ${target} actualizado (tu empresa usa su propio plugin).` : `!! No pude actualizar ${target}: ${first(u)}.`);
+    }
+    return true;
   }
   const add = () => {
     const a = claude(["plugin", "marketplace", "add", repo], env);

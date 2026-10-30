@@ -14,7 +14,7 @@ export interface Session {
   ended_at: number | null
 }
 
-export type TaskStatus = 'todo' | 'doing' | 'blocked' | 'review' | 'done'
+export type TaskStatus = 'backlog' | 'todo' | 'doing' | 'blocked' | 'review' | 'done' | 'cancelled'
 export type OutputKind = 'file' | 'folder' | 'report' | 'image' | 'markdown' | 'artifact' | 'link'
 
 export interface Output {
@@ -45,6 +45,54 @@ export interface Task {
   output_dir: string | null
   output_dir_exists: boolean | null
   outputs: Output[]
+  /** Agile links (null = backlog pool / no story) */
+  story_id?: string | null
+  sprint_id?: string | null
+  /** An agent proposed cancelling it (reason); the task waits in review for the person */
+  cancel_proposal?: string | null
+  created_at: number
+  updated_at: number
+}
+
+export type EpicStatus = 'planning' | 'active' | 'done' | 'cancelled'
+export type StoryStatus = 'backlog' | 'todo' | 'doing' | 'review' | 'done' | 'cancelled'
+export type SprintStatus = 'planning' | 'active' | 'review' | 'completed'
+
+export interface Epic {
+  id: string
+  workspace_id: string
+  title: string
+  description: string | null
+  status: EpicStatus
+  owner_agent: string | null
+  created_at: number
+  updated_at: number
+}
+
+export interface Story {
+  id: string
+  workspace_id: string
+  epic_id: string | null
+  sprint_id: string | null
+  title: string
+  description: string | null
+  status: StoryStatus
+  points: number | null
+  owner_agent: string | null
+  created_at: number
+  updated_at: number
+}
+
+export interface Sprint {
+  id: string
+  workspace_id: string
+  name: string
+  goal: string | null
+  start_date: string | null
+  end_date: string | null
+  status: SprintStatus
+  report: string | null
+  completed_at: number | null
   created_at: number
   updated_at: number
 }

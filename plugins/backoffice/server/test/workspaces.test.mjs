@@ -196,7 +196,7 @@ test('sesión → workspace: por cwd con raíces anidadas y por BACKOFFICE_WORKS
 
     await call('POST', '/hooks/SessionStart', { session_id: 'a', cwd: join(ROOT, 'acme', 'p') })
     await call('POST', '/hooks/SessionStart', { session_id: 'b', cwd: join(nested, 'q') })
-    await call('POST', '/hooks/SessionStart', { session_id: 'c', cwd: '/Users/x/otro' })
+    await call('POST', '/hooks/SessionStart', { session_id: 'c', cwd: '/Users/x/otro', agent_type: 'backoffice:cmo' }) // outside every root: only roster agents are tracked (tracksSession)
     await call('POST', '/hooks/SessionStart', { session_id: 'd', cwd: '/Users/x/otro', env: { BACKOFFICE_WORKSPACE: 'acme' } }) // explícito gana
     await call('POST', '/hooks/SessionStart', { session_id: 'e', cwd: join(nested, 'q') }, { 'x-backoffice-workspace': 'nope' }) // desconocido: cae al cwd
     await call('POST', '/hooks/SubagentStart', { session_id: 'a', agent_id: 'z1', agent_type: 'cmo' }) // sin cwd: hereda de la sesión

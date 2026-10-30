@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url'
 import { existsSync, realpathSync } from 'node:fs'
 import { homedir } from 'node:os'
 import './env.mjs' // rename compat: AGENTOS_* → BACKOFFICE_* fallback in the process env, before anything reads it
+import './company-file.mjs' // a per-company plugin's company.json (folder + ports) wins over env; no-op in the generic plugin
 
 // ¿Este módulo es el programa principal? (`file://${argv[1]}` falla en Windows: file:///C:/...)
 export function isMain(metaUrl, argv1 = process.argv[1]) {

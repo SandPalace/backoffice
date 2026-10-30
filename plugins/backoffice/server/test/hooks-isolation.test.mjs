@@ -23,10 +23,12 @@ test('hooks: un evento de otro puerto (BACKOFFICE_PORT de una corrida aislada) n
 
 test('hooks: sin BACKOFFICE_PORT (header vacío) o sin header se registran normal', async () => {
   const { app, hook, sessions } = await boot(0)
-  await hook('SessionStart', { session_id: 'a', cwd: '/Users/x/proj' }, { 'x-backoffice-port': '' })
-  await hook('SessionStart', { session_id: 'b', cwd: '/Users/x/proj2' })
-  assert.equal((await sessions()).length, 2)
-  await app.close()
+  try {
+    // roster agents: sessions outside every workspace root are only tracked for them (store tracksSession)
+    await hook('SessionStart', { session_id: 'a', cwd: '/Users/x/proj', agent_type: 'backoffice:cmo' }, { 'x-backoffice-port': '' })
+    await hook('SessionStart', { session_id: 'b', cwd: '/Users/x/proj2', agent_type: 'backoffice:cmo' })
+    assert.equal((await sessions()).length, 2)
+  } finally { await app.close() }
 })
 
 test('sesiones de auto-reporte (mcp:) sin check-in por 30 min se muestran sin conexión', async () => {

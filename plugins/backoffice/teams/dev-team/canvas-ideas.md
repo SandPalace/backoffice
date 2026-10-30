@@ -1,9 +1,9 @@
-# Canvas ideas · dev-team
+# Boards ideas · dev-team
 
-Artifacts this team can publish to the Canvas with `backoffice_artifact_publish`. Titles are Spanish patterns
+Artifacts this team can publish to the Boards with `backoffice_artifact_publish`. Titles are Spanish patterns
 (`<proyecto>`, `<página>`, `<fecha>` are placeholders filled with real values). Templates come from the core skill
 `backoffice:canvas-artifacts`. Scope: `team` for the Team board, `agent` for each agent's own board, `workspace`
-only when the person asked for a project-level view. The code itself is delivered by `path`; the Canvas shows what
+only when the person asked for a project-level view. The code itself is delivered by `path`; the Boards shows what
 the person must look at and decide. Screenshots come from `visual-verification`, never mock-ups.
 
 ## Team board (scope `team`)
