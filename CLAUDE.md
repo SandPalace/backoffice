@@ -176,7 +176,7 @@ office running), picks ONE plan from its decision table, backs up `data/` + `wor
 `backups/`, git-ignored, last 3 kept), runs the plan and checks health. The steps below are the fallback when the skill is
 not available (old plugin, or the person asks to do it by hand); the rules are the same.
 
-0. **Where is it?** If this folder is not `~/Documents/AgentOS` (e.g. `~/AgentOS-app`), offer «Moving Back Office to
+0. **Where is it?** If this folder is not inside `~/Documents` (e.g. `~/AgentOS-app`), offer «Moving Back Office to
    Documents» first (optional; an update works anywhere).
 1. **Local changes.** `git status --porcelain`. An update never overwrites the person's work (see «Your work is safe»):
    `data/` and `workspaces/` never show up there. Files changed that come from the repo: do not discard them; show them
@@ -233,18 +233,17 @@ agentos`, `claude plugin marketplace add "$PWD"`, `claude plugin install backoff
 
 ## Moving Back Office to Documents («mueve Back Office a Documentos», «mi Back Office está en otra carpeta»)
 
-For an install outside `~/Documents/AgentOS` (Windows: `Documents\AgentOS`; the Oct 15 version used `~/AgentOS-app`).
-Below, OLD = this folder's current path, NEW = `$HOME/Documents/AgentOS` (Windows `[Environment]::GetFolderPath('MyDocuments')`
-
-- `\AgentOS`; Documents may be in OneDrive). Explain the plan in two lines and get the person's OK first. Moving keeps
-  everything: the folder carries `data/` and `workspaces/` with it.
+For an install outside `~/Documents` (the Oct 15 version used `~/AgentOS-app`). Below, OLD = this folder's current path,
+NEW = `$HOME/Documents/<Empresa>-BackOffice` (Windows `[Environment]::GetFolderPath('MyDocuments')` + `\<Empresa>-BackOffice`;
+ask the company name; never `Documents/AgentOS`, which is the old AgentOS the person imports from; Documents may be in OneDrive). Explain the plan in two lines and get the person's OK first.
+Moving keeps everything: the folder carries `data/` and `workspaces/` with it.
 
 1. **Stop it.** From OLD: `./bin/backoffice stop`; an Oct 15 install may also have the global command: `backoffice stop`
    (if `command -v backoffice` finds it). Check nothing answers: `curl -s -m 2 http://localhost:4780/health` prints nothing.
-2. **Move it** (never copy + delete). First `ls -ld "$HOME/Documents/AgentOS"`: if it exists, STOP and ask (it may be a
+2. **Move it** (never copy + delete). First `ls -ld "NEW"`: if it exists, STOP and ask (it may be a
    second copy; compare `git log -1 --format=%cd` and the date of `data/backoffice.db` in each; never merge or overwrite).
-   Then `mv "OLD" "$HOME/Documents/AgentOS"` (Windows `Move-Item -LiteralPath "OLD" "NEW"`). This session's folder no
-   longer exists: from now on start every command with `cd "$HOME/Documents/AgentOS" &&`.
+   Then `mv "OLD" "NEW"` (Windows `Move-Item -LiteralPath "OLD" "NEW"`). This session's folder no
+   longer exists: from now on start every command with `cd "NEW" &&`.
 3. **Re-install from NEW:** `./install.sh` (Windows `powershell -ExecutionPolicy Bypass -File .\install.ps1`). It keeps
    `data/` (login, database) and re-points Claude to NEW: the `backoffice` marketplace (removed and added again if it pointed
    to OLD) and `backoffice@backoffice`, Claude Desktop's `mcpServers.backoffice`, `BACKOFFICE_HOME`/`BACKOFFICE_ROOT` in
@@ -259,7 +258,7 @@ Below, OLD = this folder's current path, NEW = `$HOME/Documents/AgentOS` (Window
    only with their OK; anything else there, ask.
 7. **Restart and check.** `./bin/backoffice stop` (it also stops a server started from the old path), `./bin/backoffice start`,
    then the Health check (check 6 must show NEW). Ask the person to quit Claude Desktop completely, reopen it, open NEW as
-   the project in the Code tab (File → Open folder / choose `Documents/AgentOS`) and start a new session; old sessions
+   the project in the Code tab (File → Open folder / choose NEW) and start a new session; old sessions
    still point to OLD. Then confirm in http://localhost:4781 that their projects, tasks, leads and files are there.
 
 ## Troubleshooting
