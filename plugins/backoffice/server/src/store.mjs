@@ -584,7 +584,8 @@ export function createStore(db, { roster: rosterOpt = null } = {}) {
   const clip = (s, n) => (String(s ?? '').length <= n ? String(s ?? '') : String(s).slice(0, n - 1).trimEnd() + '…')
   // in_active_team / working_now / open_tasks salen del workspace; el catálogo en sí es global. El COO siempre está presente.
   function rosterState(ws) {
-    const active = new Set((listTeams(ws).find((t) => t.active)?.members ?? []).map((m) => m.agent_id))
+    // Una empresa usa varios equipos a la vez (marketing, ventas, finanzas…): «in_active_team» = está en alguno de sus equipos.
+    const active = new Set(listTeams(ws).flatMap((t) => t.members.map((m) => m.agent_id)))
     const working = new Set(listSessions(ws).filter((s) => s.status === 'working').map((s) => agentKey(s.agent)))
     const open = {}
     for (const t of listTasks(ws)) if (t.status !== 'done' && t.agent) open[agentKey(t.agent)] = (open[agentKey(t.agent)] ?? 0) + 1
@@ -772,12 +773,15 @@ export function createStore(db, { roster: rosterOpt = null } = {}) {
     return lines.join('\n')
   }
 
-  // Texto que se adjunta a la conversación de un agente: contexto del equipo activo + el suyo. null si no hay nada que adjuntar.
+  // Texto que se adjunta a la conversación de un agente: contexto de su equipo + el suyo. null si no hay nada que adjuntar.
   function contextFor(agent, ws = DEFAULT_WS) {
     const key = agentKey(agent)
     if (key === 'coo') return cooContext(ws)
     const wsRow = needWorkspace(ws)
-    const team = listTeams(ws).find((t) => t.active)
+    // Todos los equipos trabajan a la vez: el agente recibe el contexto de SU equipo (el activo de la oficina si está en
+    // varios). «Activo» solo decide qué equipo sale primero en la oficina.
+    const mine = listTeams(ws).filter((t) => t.members.some((m) => m.agent_id === key))
+    const team = mine.find((t) => t.active) ?? mine[0]
     const me = team?.members.find((m) => m.agent_id === key)
     if (!team || !me) return null
     const label = (m) => (m.display_name ? `${m.display_name} (${m.agent_id})` : m.agent_id)
