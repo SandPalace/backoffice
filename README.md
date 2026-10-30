@@ -18,14 +18,14 @@ plugin y sus puertos: pueden estar encendidos al mismo tiempo.
 
 ## Empieza aquí: instala tu Back Office y trae lo que tenías en AgentOS
 
-Abre Claude Desktop → pestaña **Code**, con la carpeta **Documentos** abierta (o `claude` en la terminal, dentro de
-Documentos). Cambia `<Empresa>` por el nombre corto de tu empresa y pega este prompt completo:
+Abre Claude Desktop → pestaña **Code**, con la **carpeta de tu proyecto** abierta (la de tu empresa, por ejemplo
+`Documentos/Acme`; o `claude` en la terminal, dentro de ella). Back Office se instala adentro, en `.backoffice`. Cambia `<Empresa>` por el nombre corto de tu empresa y pega este prompt completo:
 
 > Quiero instalar Back Office para mi empresa <Empresa> como proyecto nuevo y traer lo que tenía en AgentOS.
 >
-> 1. Clona https://github.com/SandPalace/backoffice.git en `Documentos/<Empresa>-BackOffice` (si ya existe, detente y
->    pregúntame). No toques mi carpeta vieja `Documentos/AgentOS`: solo se lee, nunca se borra ni se mueve.
-> 2. Entra a la carpeta nueva, lee su `CLAUDE.md` y sigue la sección «Instalación nueva»: corre el instalador con el nombre
+> 1. Clona https://github.com/SandPalace/backoffice.git en `.backoffice` dentro de esta carpeta (la de mi proyecto; si
+>    ya existe, detente y pregúntame). Si esta carpeta es un repo de git, agrega `.backoffice/` a su `.gitignore`. No toques mi carpeta vieja `Documentos/AgentOS`: solo se lee, nunca se borra ni se mueve.
+> 2. Entra a `.backoffice`, lee su `CLAUDE.md` y sigue la sección «Instalación nueva»: corre el instalador con el nombre
 >    de mi empresa (<Empresa>), que me pida mi usuario y contraseña de la oficina (yo los escribo), arranca Back Office y haz
 >    el chequeo de salud.
 > 3. Si `Documentos/AgentOS` existe, sigue la sección «Traer datos de AgentOS» del `CLAUDE.md`: muéstrame mis proyectos
@@ -39,7 +39,7 @@ Documentos). Cambia `<Empresa>` por el nombre corto de tu empresa y pega este pr
 > Nunca me pidas ni muestres contraseñas, llaves o el contenido de `.env`; nunca borres carpetas ni hagas `git reset --hard`.
 > Si algo falla dos veces igual, detente y muéstrame el error.
 
-Después, **arranca tu empresa con el CEO**. En la terminal, dentro de la carpeta nueva:
+Después, **arranca tu empresa con el CEO**. En la terminal, dentro de la carpeta de tu proyecto:
 
 ```bash
 claude --agent backoffice-<empresa>:ceo
@@ -62,7 +62,7 @@ varias encendidas a la vez; cada oficina abre en su puerto. Detalle: INSTALL.md,
 
 ## Instalación
 
-Lee **[INSTALL.md](INSTALL.md)** (paso a paso, en español). Clona en `Documentos/<Empresa>-BackOffice` (o usa el prompt de arriba), corre el instalador y
+Lee **[INSTALL.md](INSTALL.md)** (paso a paso, en español). Clona en `<tu proyecto>/.backoffice` (o usa el prompt de arriba), corre el instalador y
 **conecta Claude Desktop** (siguiente sección). También puedes instalar todo desde Claude Desktop sin Terminal: INSTALL.md,
 sección «Instalar desde Claude Desktop».
 

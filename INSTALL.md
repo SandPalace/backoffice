@@ -12,11 +12,11 @@ Esta guía es para macOS (Linux es igual). Para Windows, ve a la sección **Wind
 
 ## Paso a paso
 
-1. **Clona el repositorio en Documentos** (abre la app Terminal). Usa una carpeta por empresa,
-   `Documentos/<Empresa>-BackOffice` (por ejemplo `Acme-BackOffice`). No uses `Documentos/AgentOS`: ahí vive tu AgentOS
-   viejo, del que traes los datos con `scripts/import-agentos.mjs` (README, «Empieza aquí»).
+1. **Clona el repositorio dentro de la carpeta de tu proyecto**, en `.backoffice` (abre la app Terminal). Un Back Office por
+   empresa: `Documentos/Acme/.backoffice` (Finder oculta las carpetas con punto: Cmd+Shift+. las muestra). Si tu proyecto
+   es un repo de git, agrega `.backoffice/` a su `.gitignore`. No uses `Documentos/AgentOS`: ahí vive tu AgentOS viejo, del que traes los datos con `scripts/import-agentos.mjs` (README, «Empieza aquí»).
    ```
-   cd ~/Documents && git clone https://github.com/SandPalace/backoffice.git Acme-BackOffice && cd Acme-BackOffice
+   cd ~/Documents/Acme && git clone https://github.com/SandPalace/backoffice.git .backoffice && cd .backoffice
    ```
    Todo lo que Back Office crea (datos, proyectos, logs, usuario y contraseña) se queda **dentro de esa carpeta**
    (`data/` para los datos y `workspaces/` para tus workspaces); no se instala nada en tu sistema (ni comandos globales, ni cambios al PATH). Esas dos carpetas nunca se suben a Git. Lo único fuera de la carpeta: la configuración de Claude, para que encuentre tus agentes.
@@ -76,7 +76,7 @@ con `claude plugin uninstall backoffice@backoffice`. El instalador y `update` te
 Cowork no ve lo que se instaló con la terminal: se agrega desde Claude Desktop.
 
 1. **Personalizar → Plugins → Agregar marketplace** → pega la ruta de tu carpeta `…/dist/company-plugin` (por ejemplo
-   `/Users/ana/Documents/Acme-BackOffice/dist/company-plugin`).
+   `/Users/ana/Documents/Acme/.backoffice/dist/company-plugin`).
 2. Instala **backoffice-<empresa>** (su descripción empieza con «Back Office · <Empresa>»).
 3. Cierra y abre Claude Desktop.
 
@@ -101,7 +101,7 @@ pestaña **Code** de Claude Desktop no hace falta nada más que lo de la parte A
 ## Varias empresas
 
 **Una carpeta + un plugin + un par de puertos por empresa.** Para la segunda empresa clona otra vez en su propia carpeta
-(`cd ~/Documents && git clone https://github.com/SandPalace/backoffice.git Beta-BackOffice`), corre `./install.sh` ahí y
+(`cd ~/Documents/Beta && git clone https://github.com/SandPalace/backoffice.git .backoffice`), corre `./install.sh` ahí y
 escribe su nombre: el instalador ve que el 4780/4781 ya es de tu otro Back Office y le da el siguiente par libre.
 
 - Puedes tener **varias encendidas a la vez**: `./bin/backoffice start` en cada carpeta; cada oficina abre en su puerto.
@@ -117,11 +117,11 @@ Otros comandos: `./bin/backoffice status`, `./bin/backoffice stop`.
 
 ## Instalar desde Claude Desktop (sin Terminal)
 
-Abre **Claude Desktop → pestaña Code**, elige tu carpeta **Documentos** como proyecto y pega:
+Abre **Claude Desktop → pestaña Code**, elige la **carpeta de tu proyecto** (la de tu empresa) y pega:
 
 > Instálame Back Office en esta computadora. Revisa que tenga Git y Node 22.13 o más nuevo; si falta algo, dime cómo
-> instalarlo y espera. Clona https://github.com/SandPalace/backoffice.git en Documentos/<Empresa>-BackOffice (si ya existe,
-> detente y pregúntame; no toques Documentos/AgentOS). Lee su CLAUDE.md e INSTALL.md, pregúntame el nombre de mi empresa y el usuario y la contraseña de la oficina, corre el instalador
+> instalarlo y espera. Clona https://github.com/SandPalace/backoffice.git en .backoffice dentro de esta carpeta (si ya existe,
+> detente y pregúntame; no toques Documentos/AgentOS; si esta carpeta es un repo de git, agrega .backoffice/ a su .gitignore). Lee su CLAUDE.md e INSTALL.md, pregúntame el nombre de mi empresa y el usuario y la contraseña de la oficina, corre el instalador
 > (Mac: ./install.sh · Windows: .\install.ps1) y pídeme permiso antes de cambiar mi configuración de Claude. Arranca
 > Back Office, haz el chequeo de salud y dime cómo conectar la extensión para Chat y Cowork. Si algo falla dos veces igual,
 > detente y muéstrame el error.
@@ -148,7 +148,7 @@ enseña y te pregunta si lo guardas aparte (`git stash`) o lo conservas. Nunca u
 fuerces el pull.
 
 **¿Tu Back Office está en otra carpeta** (por ejemplo `~/AgentOS-app`, de la versión del 15 de octubre)? Abre Claude en esa
-carpeta y dile **«mueve Back Office a Documentos»**: la detiene, la mueve a `Documentos/<Empresa>-BackOffice` (con tus datos), vuelve a
+carpeta y dile **«mueve Back Office a Documentos»**: la detiene, la mueve a `<tu proyecto>/.backoffice` (con tus datos), vuelve a
 correr el instalador para que Claude Code y Claude Desktop apunten a la carpeta nueva y limpia lo viejo preguntándote.
 
 ## Revisar que todo esté bien
@@ -193,8 +193,9 @@ Instalador nativo para Windows 10/11 (PowerShell 5.1, el que ya trae Windows, o 
 2. Clona el repositorio:
    ```
    cd $HOME\Documents
-   git clone https://github.com/SandPalace/backoffice.git Acme-BackOffice
-   cd Acme-BackOffice
+   cd Acme
+   git clone https://github.com/SandPalace/backoffice.git .backoffice
+   cd .backoffice
    ```
    Igual que en Mac, todo (datos, proyectos, logs) se queda dentro de esa carpeta, en `data\` y `workspaces\`, y no se instala nada en tu sistema. Lo único fuera de la carpeta: la configuración de Claude, para que encuentre tus agentes.
    El repositorio es público: no necesitas iniciar sesión en GitHub.
@@ -218,7 +219,7 @@ Opciones del instalador: `-ResetLogin`, `-NoClaude`, `-NoClaudeCli`, `-NoDesktop
 
 ### Problemas en Windows
 
-- **"backoffice.cmd no se reconoce"**: estás fuera de la carpeta. Haz `cd $HOME\Documents\<Empresa>-BackOffice` y corre `.\bin\backoffice.cmd start`.
+- **"backoffice.cmd no se reconoce"**: estás fuera de la carpeta. Haz `cd $HOME\Documents\<Empresa>\.backoffice` y corre `.\bin\backoffice.cmd start`.
 - **"la ejecución de scripts está deshabilitada"**: corre el instalador con `powershell -ExecutionPolicy Bypass -File .\install.ps1`.
 - **Ventana del Firewall / antivirus preguntando por "node"**: elige **Permitir** (solo redes privadas). Back Office solo escucha en 127.0.0.1.
   Si tu antivirus bloquea `npm ci`, agrega una excepción para la carpeta del repo y vuelve a correr el instalador.
